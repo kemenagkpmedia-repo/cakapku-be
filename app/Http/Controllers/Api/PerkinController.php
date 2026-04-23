@@ -6,6 +6,10 @@ use App\Models\Perkin;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\PerkinImport;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
+use Exception;
 
 class PerkinController extends BaseController
 {
@@ -15,12 +19,20 @@ class PerkinController extends BaseController
      *     tags={"Perkin"},
      *     summary="Get list of Perkin",
      *     security={{"bearerAuth":{}}},
-     *     @OA\Response(response="200", description="List of Perkin")
+     *     @OA\Response(response="200", description="List of Perkin"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function index()
     {
-        return response()->json(Perkin::with(['periode', 'satkers', 'iksks'])->get());
+        try {
+            return response()->json(Perkin::with(['periode', 'satkers', 'iksks'])->get());
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengambil data Perkin.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -39,22 +51,42 @@ class PerkinController extends BaseController
      *             @OA\Property(property="status", type="boolean")
      *         )
      *     ),
-     *     @OA\Response(response="201", description="Perkin created successfully")
+     *     @OA\Response(response="201", description="Perkin created successfully"),
+     *     @OA\Response(response="422", description="Validation error"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'no_sk' => 'nullable|string|max:255',
-            'nama_perkin' => 'required|string|max:255',
-            'id_periode' => 'required|integer|exists:periodes,id',
-            'status' => 'boolean',
-        ]);
-        $data['created_by'] = $request->user()->id ?? null;
+        try {
+            $data = $request->validate([
+                'no_sk'       => 'nullable|string|max:255',
+                'nama_perkin' => 'required|string|max:255',
+                'id_periode'  => 'required|integer|exists:periodes,id',
+                'status'      => 'boolean',
+            ]);
+            $data['created_by'] = $request->user()->id ?? null;
 
-        $perkin = Perkin::create($data);
+            $perkin = Perkin::create($data);
 
-        return response()->json($perkin, 201);
+            return response()->json($perkin, 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Data tidak valid.',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal menyimpan Perkin. Terjadi kesalahan pada database.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -72,15 +104,34 @@ class PerkinController extends BaseController
      *             @OA\Property(property="status", type="boolean")
      *         )
      *     ),
-     *     @OA\Response(response="200", description="Perkin updated successfully")
+     *     @OA\Response(response="200", description="Perkin updated successfully"),
+     *     @OA\Response(response="404", description="Perkin not found"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function update(Request $request, $id)
     {
-        $perkin = Perkin::findOrFail($id);
-        $perkin->update($request->all());
+        try {
+            $perkin = Perkin::findOrFail($id);
+            $perkin->update($request->all());
 
-        return response()->json($perkin);
+            return response()->json($perkin);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Perkin dengan ID ' . $id . ' tidak ditemukan.',
+            ], 404);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal memperbarui Perkin.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -97,20 +148,46 @@ class PerkinController extends BaseController
      *             @OA\Property(property="id_satkers", type="array", @OA\Items(type="integer"))
      *         )
      *     ),
-     *     @OA\Response(response="200", description="Assigned successfully")
+     *     @OA\Response(response="200", description="Assigned successfully"),
+     *     @OA\Response(response="404", description="Perkin not found"),
+     *     @OA\Response(response="422", description="Validation error"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function assignSatker(Request $request, $id)
     {
-        $perkin = Perkin::findOrFail($id);
-        $request->validate([
-            'id_satkers' => 'required|array',
-            'id_satkers.*' => 'integer|exists:satkers,id',
-        ]);
+        try {
+            $perkin = Perkin::findOrFail($id);
 
-        $perkin->satkers()->sync($request->id_satkers);
+            $request->validate([
+                'id_satkers'   => 'required|array',
+                'id_satkers.*' => 'integer|exists:satkers,id',
+            ]);
 
-        return response()->json(['message' => 'Perkin assigned to Satkers successfully']);
+            $perkin->satkers()->sync($request->id_satkers);
+
+            return response()->json(['message' => 'Perkin berhasil dihubungkan ke Satker.']);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Perkin dengan ID ' . $id . ' tidak ditemukan.',
+            ], 404);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Data tidak valid.',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal menghubungkan Perkin ke Satker.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -120,15 +197,34 @@ class PerkinController extends BaseController
      *     summary="Delete Perkin",
      *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-     *     @OA\Response(response="200", description="Perkin deleted successfully")
+     *     @OA\Response(response="200", description="Perkin deleted successfully"),
+     *     @OA\Response(response="404", description="Perkin not found"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function destroy($id)
     {
-        $perkin = Perkin::findOrFail($id);
-        $perkin->delete();
+        try {
+            $perkin = Perkin::findOrFail($id);
+            $perkin->delete();
 
-        return response()->json(['message' => 'Perkin deleted successfully']);
+            return response()->json(['message' => 'Perkin berhasil dihapus.']);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Perkin dengan ID ' . $id . ' tidak ditemukan.',
+            ], 404);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus Perkin. Mungkin masih ada IKSK atau data terkait.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -147,20 +243,40 @@ class PerkinController extends BaseController
      *             )
      *         )
      *     ),
-     *     @OA\Response(response="200", description="Import successful")
+     *     @OA\Response(response="200", description="Import successful"),
+     *     @OA\Response(response="422", description="Validation error"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function importExcel(Request $request)
     {
-        $request->validate([
-            'id_periode' => 'required|integer|exists:periodes,id',
-            'file' => 'required|mimes:xlsx,xls,csv|max:10240',
-        ]);
+        try {
+            $request->validate([
+                'id_periode' => 'required|integer|exists:periodes,id',
+                'file'       => 'required|mimes:xlsx,xls,csv|max:10240',
+            ]);
 
-        $userId = $request->user()->id ?? null;
+            $userId = $request->user()->id ?? null;
 
-        Excel::import(new PerkinImport($request->id_periode, $userId), $request->file('file'));
+            Excel::import(new PerkinImport($request->id_periode, $userId), $request->file('file'));
 
-        return response()->json(['message' => 'Perkin & IKSK imported successfully']);
+            return response()->json(['message' => 'Perkin & IKSK berhasil diimport.']);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Data tidak valid.',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal import data. Terjadi kesalahan pada database.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal import file. Pastikan format file dan data sudah benar.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 }

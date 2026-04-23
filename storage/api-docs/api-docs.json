@@ -10,7 +10,7 @@
     },
     "servers": [
         {
-            "url": "http://cakapku-be.test",
+            "url": "http://localhost:3456",
             "description": "API Server"
         }
     ],
@@ -29,11 +29,11 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "identifier",
+                                    "username",
                                     "password"
                                 ],
                                 "properties": {
-                                    "identifier": {
+                                    "username": {
                                         "description": "Username or NIP",
                                         "type": "string",
                                         "example": "admin"
@@ -55,6 +55,12 @@
                     },
                     "401": {
                         "description": "Invalid credentials"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
@@ -69,6 +75,12 @@
                 "responses": {
                     "200": {
                         "description": "Successful logout"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -88,6 +100,15 @@
                 "responses": {
                     "200": {
                         "description": "List of subordinates and their Kinerja"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - bukan pimpinan satker"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -107,6 +128,9 @@
                 "responses": {
                     "200": {
                         "description": "List of IKSK"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -152,6 +176,12 @@
                 "responses": {
                     "201": {
                         "description": "IKSK created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -202,6 +232,15 @@
                 "responses": {
                     "200": {
                         "description": "IKSK updated successfully"
+                    },
+                    "404": {
+                        "description": "IKSK not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -229,6 +268,12 @@
                 "responses": {
                     "200": {
                         "description": "IKSK deleted successfully"
+                    },
+                    "404": {
+                        "description": "IKSK not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -248,6 +293,12 @@
                 "responses": {
                     "200": {
                         "description": "List of Kinerja Harian"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -297,6 +348,15 @@
                 "responses": {
                     "201": {
                         "description": "Created successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -344,6 +404,18 @@
                 "responses": {
                     "200": {
                         "description": "Updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - not owner"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -371,6 +443,15 @@
                 "responses": {
                     "200": {
                         "description": "Deleted successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -390,6 +471,9 @@
                 "responses": {
                     "200": {
                         "description": "List of Periode"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -429,6 +513,12 @@
                 "responses": {
                     "201": {
                         "description": "Periode created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -458,6 +548,12 @@
                 "responses": {
                     "200": {
                         "description": "Periode object"
+                    },
+                    "404": {
+                        "description": "Periode not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -503,6 +599,15 @@
                 "responses": {
                     "200": {
                         "description": "Periode updated successfully"
+                    },
+                    "404": {
+                        "description": "Periode not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -530,6 +635,12 @@
                 "responses": {
                     "200": {
                         "description": "Periode deleted successfully"
+                    },
+                    "404": {
+                        "description": "Periode not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -549,6 +660,9 @@
                 "responses": {
                     "200": {
                         "description": "List of Perkin"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -594,6 +708,12 @@
                 "responses": {
                     "201": {
                         "description": "Perkin created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -644,6 +764,12 @@
                 "responses": {
                     "200": {
                         "description": "Perkin updated successfully"
+                    },
+                    "404": {
+                        "description": "Perkin not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -671,6 +797,12 @@
                 "responses": {
                     "200": {
                         "description": "Perkin deleted successfully"
+                    },
+                    "404": {
+                        "description": "Perkin not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -721,6 +853,15 @@
                 "responses": {
                     "200": {
                         "description": "Assigned successfully"
+                    },
+                    "404": {
+                        "description": "Perkin not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -761,6 +902,12 @@
                 "responses": {
                     "200": {
                         "description": "Import successful"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -780,6 +927,9 @@
                 "responses": {
                     "200": {
                         "description": "List of Satker"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -818,6 +968,12 @@
                 "responses": {
                     "201": {
                         "description": "Satker created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -865,6 +1021,12 @@
                 "responses": {
                     "200": {
                         "description": "Satker updated successfully"
+                    },
+                    "404": {
+                        "description": "Satker not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -892,6 +1054,12 @@
                 "responses": {
                     "200": {
                         "description": "Satker deleted successfully"
+                    },
+                    "404": {
+                        "description": "Satker not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -911,6 +1079,9 @@
                 "responses": {
                     "200": {
                         "description": "List of users"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -963,6 +1134,12 @@
                 "responses": {
                     "201": {
                         "description": "User created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -1013,6 +1190,12 @@
                 "responses": {
                     "200": {
                         "description": "User updated successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
@@ -1040,6 +1223,12 @@
                 "responses": {
                     "200": {
                         "description": "User deleted successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [

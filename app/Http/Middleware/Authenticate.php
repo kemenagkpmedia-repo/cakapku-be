@@ -12,6 +12,8 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('login');
+        // Pure API project: selalu return null agar Laravel merespons dengan 401 JSON
+        // bukan redirect ke route 'login' yang tidak ada
+        return null;
     }
 }

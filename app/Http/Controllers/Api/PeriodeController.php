@@ -4,6 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Periode;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
+use Exception;
 
 class PeriodeController extends BaseController
 {
@@ -13,12 +17,20 @@ class PeriodeController extends BaseController
      *     tags={"Periode"},
      *     summary="Get list of Periode",
      *     security={{"bearerAuth":{}}},
-     *     @OA\Response(response="200", description="List of Periode")
+     *     @OA\Response(response="200", description="List of Periode"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function index()
     {
-        return response()->json(Periode::all());
+        try {
+            return response()->json(Periode::all());
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengambil data Periode.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -35,19 +47,39 @@ class PeriodeController extends BaseController
      *             @OA\Property(property="status", type="boolean")
      *         )
      *     ),
-     *     @OA\Response(response="201", description="Periode created successfully")
+     *     @OA\Response(response="201", description="Periode created successfully"),
+     *     @OA\Response(response="422", description="Validation error"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'tahun' => 'required|string|max:50',
-            'status' => 'required|boolean',
-        ]);
+        try {
+            $data = $request->validate([
+                'tahun'  => 'required|string|max:50',
+                'status' => 'required|boolean',
+            ]);
 
-        $periode = Periode::create($data);
+            $periode = Periode::create($data);
 
-        return response()->json($periode, 201);
+            return response()->json($periode, 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Data tidak valid.',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal menyimpan Periode. Terjadi kesalahan pada database.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -57,13 +89,27 @@ class PeriodeController extends BaseController
      *     summary="Get specific Periode",
      *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-     *     @OA\Response(response="200", description="Periode object")
+     *     @OA\Response(response="200", description="Periode object"),
+     *     @OA\Response(response="404", description="Periode not found"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function show($id)
     {
-        $periode = Periode::findOrFail($id);
-        return response()->json($periode);
+        try {
+            $periode = Periode::findOrFail($id);
+            return response()->json($periode);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Periode dengan ID ' . $id . ' tidak ditemukan.',
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -80,20 +126,46 @@ class PeriodeController extends BaseController
      *             @OA\Property(property="status", type="boolean")
      *         )
      *     ),
-     *     @OA\Response(response="200", description="Periode updated successfully")
+     *     @OA\Response(response="200", description="Periode updated successfully"),
+     *     @OA\Response(response="404", description="Periode not found"),
+     *     @OA\Response(response="422", description="Validation error"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function update(Request $request, $id)
     {
-        $periode = Periode::findOrFail($id);
-        $data = $request->validate([
-            'tahun' => 'nullable|string|max:50',
-            'status' => 'nullable|boolean',
-        ]);
+        try {
+            $periode = Periode::findOrFail($id);
 
-        $periode->update($data);
+            $data = $request->validate([
+                'tahun'  => 'nullable|string|max:50',
+                'status' => 'nullable|boolean',
+            ]);
 
-        return response()->json($periode);
+            $periode->update($data);
+
+            return response()->json($periode);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Periode dengan ID ' . $id . ' tidak ditemukan.',
+            ], 404);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Data tidak valid.',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal memperbarui Periode.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -103,14 +175,33 @@ class PeriodeController extends BaseController
      *     summary="Delete Periode",
      *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-     *     @OA\Response(response="200", description="Periode deleted successfully")
+     *     @OA\Response(response="200", description="Periode deleted successfully"),
+     *     @OA\Response(response="404", description="Periode not found"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function destroy($id)
     {
-        $periode = Periode::findOrFail($id);
-        $periode->delete();
+        try {
+            $periode = Periode::findOrFail($id);
+            $periode->delete();
 
-        return response()->json(['message' => 'Periode deleted successfully']);
+            return response()->json(['message' => 'Periode berhasil dihapus.']);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Periode dengan ID ' . $id . ' tidak ditemukan.',
+            ], 404);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus Periode. Mungkin masih ada data Perkin yang terkait.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 }

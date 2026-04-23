@@ -5,6 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
+use Exception;
 
 class UserController extends BaseController
 {
@@ -14,12 +18,20 @@ class UserController extends BaseController
      *     tags={"Users"},
      *     summary="Get list of users",
      *     security={{"bearerAuth":{}}},
-     *     @OA\Response(response="200", description="List of users")
+     *     @OA\Response(response="200", description="List of users"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function index()
     {
-        return response()->json(User::with('satker')->get());
+        try {
+            return response()->json(User::with('satker')->get());
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengambil data User.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -40,34 +52,54 @@ class UserController extends BaseController
      *             @OA\Property(property="id_satker", type="integer")
      *         )
      *     ),
-     *     @OA\Response(response="201", description="User created successfully")
+     *     @OA\Response(response="201", description="User created successfully"),
+     *     @OA\Response(response="422", description="Validation error"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'nama' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users',
-            'nip' => 'nullable|string|max:50',
-            'email' => 'nullable|email|unique:users',
-            'password' => 'required|string|min:6',
-            'role' => 'nullable|string',
-            'id_satker' => 'nullable|integer',
-            'jabatan' => 'nullable|string',
-            'gol_ruang' => 'nullable|string',
-        ]);
+        try {
+            $data = $request->validate([
+                'nama'      => 'required|string|max:255',
+                'username'  => 'required|string|max:255|unique:users',
+                'nip'       => 'nullable|string|max:50',
+                'email'     => 'nullable|email|unique:users',
+                'password'  => 'required|string|min:6',
+                'role'      => 'nullable|string',
+                'id_satker' => 'nullable|integer',
+                'jabatan'   => 'nullable|string',
+                'gol_ruang' => 'nullable|string',
+            ]);
 
-        $role = $data['role'] ?? 'USER';
-        unset($data['role']);
+            $role = $data['role'] ?? 'USER';
+            unset($data['role']);
 
-        $data['password'] = Hash::make($data['password']);
-        $user = User::create($data);
-        
-        if ($role) {
-            $user->assignRole($role);
+            $data['password'] = Hash::make($data['password']);
+            $user = User::create($data);
+
+            if ($role) {
+                $user->assignRole($role);
+            }
+
+            return response()->json($user, 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Data tidak valid.',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal membuat User. Kemungkinan username atau email sudah digunakan.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
         }
-
-        return response()->json($user, 201);
     }
 
     /**
@@ -85,26 +117,45 @@ class UserController extends BaseController
      *             @OA\Property(property="role", type="string")
      *         )
      *     ),
-     *     @OA\Response(response="200", description="User updated successfully")
+     *     @OA\Response(response="200", description="User updated successfully"),
+     *     @OA\Response(response="404", description="User not found"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function update(Request $request, $id)
     {
-        $user = User::findOrFail($id);
-        $data = $request->all();
-        
-        if (isset($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        }
-        
-        if (isset($data['role'])) {
-            $user->syncRoles([$data['role']]);
-            unset($data['role']);
-        }
+        try {
+            $user = User::findOrFail($id);
+            $data = $request->all();
 
-        $user->update($data);
+            if (isset($data['password'])) {
+                $data['password'] = Hash::make($data['password']);
+            }
 
-        return response()->json($user);
+            if (isset($data['role'])) {
+                $user->syncRoles([$data['role']]);
+                unset($data['role']);
+            }
+
+            $user->update($data);
+
+            return response()->json($user);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'User dengan ID ' . $id . ' tidak ditemukan.',
+            ], 404);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal memperbarui User.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -114,14 +165,33 @@ class UserController extends BaseController
      *     summary="Delete user",
      *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-     *     @OA\Response(response="200", description="User deleted successfully")
+     *     @OA\Response(response="200", description="User deleted successfully"),
+     *     @OA\Response(response="404", description="User not found"),
+     *     @OA\Response(response="500", description="Server error")
      * )
      */
     public function destroy($id)
     {
-        $user = User::findOrFail($id);
-        $user->delete();
+        try {
+            $user = User::findOrFail($id);
+            $user->delete();
 
-        return response()->json(['message' => 'User deleted successfully']);
+            return response()->json(['message' => 'User berhasil dihapus.']);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'User dengan ID ' . $id . ' tidak ditemukan.',
+            ], 404);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus User. Mungkin masih ada data terkait.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 }
