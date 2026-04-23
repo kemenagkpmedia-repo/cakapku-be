@@ -40,8 +40,8 @@ class AuthController extends BaseController
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Token akan kedaluwarsa dalam 24 jam
+        $token = $user->createToken('auth_token', ['*'], now()->addHours(24))->plainTextToken;
 
         return response()->json([
             'access_token' => $token,
