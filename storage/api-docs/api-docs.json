@@ -1074,8 +1074,19 @@
                 "tags": [
                     "Users"
                 ],
-                "summary": "Get list of users",
+                "summary": "Get list of users (optional filter by role)",
                 "operationId": "566aed8efb436ca506e0ef51a032ecd9",
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "description": "Filter users by role name (e.g. USER, ADMIN, OPERATOR, PIMPINAN)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of users"
@@ -1137,6 +1148,39 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/users/by-role/{role}": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get users by role name",
+                "operationId": "8d272972752727681435d15c8f74a0c1",
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "description": "Role name: USER | ADMIN | OPERATOR | PIMPINAN",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of users with given role"
                     },
                     "500": {
                         "description": "Server error"

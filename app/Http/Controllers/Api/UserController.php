@@ -16,19 +16,74 @@ class UserController extends BaseController
      * @OA\Get(
      *     path="/api/users",
      *     tags={"Users"},
-     *     summary="Get list of users",
+     *     summary="Get list of users (optional filter by role)",
      *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="role",
+     *         in="query",
+     *         required=false,
+     *         description="Filter users by role name (e.g. USER, ADMIN, OPERATOR, PIMPINAN)",
+     *         @OA\Schema(type="string")
+     *     ),
      *     @OA\Response(response="200", description="List of users"),
      *     @OA\Response(response="500", description="Server error")
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            return response()->json(User::with('satker')->get());
+            $query = User::with(['satker', 'roles']);
+
+            if ($request->filled('role')) {
+                $query->role($request->input('role'));
+            }
+
+            $users = $query->get()->map(function ($user) {
+                $user->role = $user->getRoleNames()->first() ?? null;
+                return $user;
+            });
+
+            return response()->json($users);
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengambil data User.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/users/by-role/{role}",
+     *     tags={"Users"},
+     *     summary="Get users by role name",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="role",
+     *         in="path",
+     *         required=true,
+     *         description="Role name: USER | ADMIN | OPERATOR | PIMPINAN",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(response="200", description="List of users with given role"),
+     *     @OA\Response(response="500", description="Server error")
+     * )
+     */
+    public function byRole($role)
+    {
+        try {
+            $users = User::with(['satker', 'roles'])
+                ->role($role)
+                ->get()
+                ->map(function ($user) {
+                    $user->role = $user->getRoleNames()->first() ?? null;
+                    return $user;
+                });
+
+            return response()->json($users);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengambil data User berdasarkan role.',
                 'error'   => $e->getMessage(),
             ], 500);
         }

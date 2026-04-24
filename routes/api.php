@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Admin & General Base Routing (Implement roles logic in middleware/controller later as needed)
+    Route::get('users/by-role/{role}', [UserController::class, 'byRole']);
     Route::apiResource('users', UserController::class);
     Route::apiResource('satkers', SatkerController::class);
     Route::apiResource('periodes', PeriodeController::class);
