@@ -53,6 +53,8 @@ class AuthController extends BaseController
             // Token akan kedaluwarsa dalam 24 jam
             $token = $user->createToken('auth_token', ['*'], now()->addHours(24))->plainTextToken;
 
+            $user->role = $user->getRoleNames()->first();
+
             return response()->json([
                 'access_token' => $token,
                 'token_type'   => 'Bearer',
