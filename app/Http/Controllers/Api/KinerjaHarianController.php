@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\KinerjaHarian;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -196,6 +197,51 @@ class KinerjaHarianController extends BaseController
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/kinerja-harian/bawahan",
+     *     tags={"Kinerja Harian"},
+     *     summary="Get list of Kinerja Harian from subordinates",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response="200", description="List of Kinerja Harian"),
+     *     @OA\Response(response="403", description="Forbidden"),
+     *     @OA\Response(response="500", description="Server error")
+     * )
+     */
+    public function bawahan(Request $request)
+    {
+        try {
+            $pimpinan = $request->user();
+
+            if (!$pimpinan) {
+                return response()->json(['message' => 'Tidak terautentikasi.'], 401);
+            }
+
+            // Pimpinan sees users in the satker they lead
+            $satker = $pimpinan->satker_dipimpin;
+            if (!$satker) {
+                return response()->json([
+                    'message' => 'Akses ditolak. Anda bukan pimpinan satker manapun.',
+                ], 403);
+            }
+
+            // Return all users in this satker EXCEPT the pimpinan themselves
+            $users = User::where('id_satker', $satker->id)
+                ->where('id', '!=', $pimpinan->id)
+                ->with(['kinerja_harians.iksk.perkin'])
+                ->orderBy('nama', 'asc')
+                ->get();
+
+            return response()->json($users);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengambil data Kinerja Bawahan.',
                 'error'   => $e->getMessage(),
             ], 500);
         }
