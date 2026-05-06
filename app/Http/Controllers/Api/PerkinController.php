@@ -23,10 +23,26 @@ class PerkinController extends BaseController
      *     @OA\Response(response="500", description="Server error")
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            return response()->json(Perkin::with(['periode', 'satkers', 'sasaran_kegiatans.iksks', 'iksks'])->get());
+            $user = $request->user();
+            $query = Perkin::with(['periode', 'satkers', 'sasaran_kegiatans.iksks', 'iksks']);
+
+            // Filter status aktif (Perkin dan Periode)
+            $query->where('status', true);
+            $query->whereHas('periode', function($q) {
+                $q->where('status', true);
+            });
+
+            // Jika bukan admin, filter berdasarkan satker user
+            if (!$user->hasRole('ADMIN')) {
+                $query->whereHas('satkers', function ($q) use ($user) {
+                    $q->where('satkers.id', $user->id_satker);
+                });
+            }
+
+            return response()->json($query->get());
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengambil data Perkin.',

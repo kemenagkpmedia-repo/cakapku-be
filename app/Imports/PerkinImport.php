@@ -53,6 +53,12 @@ class PerkinImport implements ToCollection, WithStartRow
                     'created_by'  => $this->userId,
                 ]);
                 $this->perkinId = $perkin->id;
+
+                // Auto-assign satker operator
+                $user = \App\Models\User::find($this->userId);
+                if ($user && $user->id_satker) {
+                    $perkin->satkers()->sync([$user->id_satker]);
+                }
             }
 
             // 2. If Sasaran Kegiatan is provided, we create a new SK record

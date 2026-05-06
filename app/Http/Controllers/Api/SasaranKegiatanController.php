@@ -8,10 +8,28 @@ use Exception;
 
 class SasaranKegiatanController extends BaseController
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
-            return response()->json(SasaranKegiatan::with(['perkin', 'iksks'])->get());
+            $user = $request->user();
+            $query = SasaranKegiatan::with(['perkin', 'iksks']);
+
+            // Filter Perkin yang aktif dan Periode yang aktif
+            $query->whereHas('perkin', function($q) {
+                $q->where('status', true);
+                $q->whereHas('periode', function($sq) {
+                    $sq->where('status', true);
+                });
+            });
+
+            // Filter Satker jika bukan admin
+            if (!$user->hasRole('ADMIN')) {
+                $query->whereHas('perkin.satkers', function ($q) use ($user) {
+                    $q->where('satkers.id', $user->id_satker);
+                });
+            }
+
+            return response()->json($query->get());
         } catch (Exception $e) {
             return response()->json(['message' => 'Gagal mengambil data Sasaran Kegiatan.', 'error' => $e->getMessage()], 500);
         }

@@ -21,10 +21,28 @@ class IkskController extends BaseController
      *     @OA\Response(response="500", description="Server error")
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            return response()->json(Iksk::with('perkin')->get());
+            $user = $request->user();
+            $query = Iksk::with('sasaran_kegiatan.perkin');
+
+            // Filter Perkin yang aktif dan Periode yang aktif melalui Sasaran Kegiatan
+            $query->whereHas('sasaran_kegiatan.perkin', function($q) {
+                $q->where('status', true);
+                $q->whereHas('periode', function($sq) {
+                    $sq->where('status', true);
+                });
+            });
+
+            // Filter Satker jika bukan admin
+            if (!$user->hasRole('ADMIN')) {
+                $query->whereHas('sasaran_kegiatan.perkin.satkers', function ($q) use ($user) {
+                    $q->where('satkers.id', $user->id_satker);
+                });
+            }
+
+            return response()->json($query->get());
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengambil data IKSK.',
@@ -42,8 +60,8 @@ class IkskController extends BaseController
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"id_perkin", "indikator"},
-     *             @OA\Property(property="id_perkin", type="integer"),
+     *             required={"id_sasaran_kegiatan", "indikator"},
+     *             @OA\Property(property="id_sasaran_kegiatan", type="integer"),
      *             @OA\Property(property="indikator", type="string"),
      *             @OA\Property(property="target_vol", type="string"),
      *             @OA\Property(property="target_satuan", type="string")
@@ -58,10 +76,10 @@ class IkskController extends BaseController
     {
         try {
             $data = $request->validate([
-                'id_perkin'     => 'required|integer|exists:perkins,id',
-                'indikator'     => 'required|string',
-                'target_vol'    => 'nullable|string',
-                'target_satuan' => 'nullable|string',
+                'id_sasaran_kegiatan' => 'required|integer|exists:sasaran_kegiatans,id',
+                'indikator'           => 'required|string',
+                'target_vol'          => 'nullable|string',
+                'target_satuan'       => 'nullable|string',
             ]);
 
             $iksk = Iksk::create($data);
