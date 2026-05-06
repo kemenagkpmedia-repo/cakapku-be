@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\IkskController;
 use App\Http\Controllers\Api\KinerjaHarianController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\PeriodeController;
+use App\Http\Controllers\Api\SasaranKegiatanController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -27,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     Route::post('perkins/import', [PerkinController::class, 'importExcel']);
     Route::apiResource('perkins', PerkinController::class);
+    Route::apiResource('sasaran-kegiatans', SasaranKegiatanController::class);
     Route::post('perkins/{id}/assign-satker', [PerkinController::class, 'assignSatker']);
     
     Route::apiResource('iksks', IkskController::class);

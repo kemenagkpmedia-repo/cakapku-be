@@ -13,9 +13,11 @@ return new class extends Migration
     {
         Schema::create('iksks', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('id_perkin');
+            $table->unsignedBigInteger('id_sasaran_kegiatan');
             $table->text('indikator')->nullable();
             $table->timestamps();
+
+            $table->foreign('id_sasaran_kegiatan')->references('id')->on('sasaran_kegiatans')->onDelete('cascade');
         });
     }
 

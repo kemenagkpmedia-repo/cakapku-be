@@ -26,7 +26,7 @@ class PerkinController extends BaseController
     public function index()
     {
         try {
-            return response()->json(Perkin::with(['periode', 'satkers', 'iksks'])->get());
+            return response()->json(Perkin::with(['periode', 'satkers', 'sasaran_kegiatans.iksks', 'iksks'])->get());
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengambil data Perkin.',

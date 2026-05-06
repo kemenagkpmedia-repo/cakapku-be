@@ -10,15 +10,15 @@ class Iksk extends Model
     use HasFactory;
 
     protected $fillable = [
-        'id_perkin',
+        'id_sasaran_kegiatan',
         'indikator',
         'target_vol',
         'target_satuan',
     ];
 
-    public function perkin()
+    public function sasaran_kegiatan()
     {
-        return $this->belongsTo(Perkin::class, 'id_perkin');
+        return $this->belongsTo(SasaranKegiatan::class, 'id_sasaran_kegiatan');
     }
 
     public function kinerja_harians()

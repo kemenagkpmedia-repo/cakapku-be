@@ -27,9 +27,14 @@ class Perkin extends Model
         return $this->belongsToMany(Satker::class, 'perkin_satker', 'id_perkin', 'id_satker');
     }
 
+    public function sasaran_kegiatans()
+    {
+        return $this->hasMany(SasaranKegiatan::class, 'id_perkin');
+    }
+
     public function iksks()
     {
-        return $this->hasMany(Iksk::class, 'id_perkin');
+        return $this->hasManyThrough(Iksk::class, SasaranKegiatan::class, 'id_perkin', 'id_sasaran_kegiatan');
     }
 
     public function creator()

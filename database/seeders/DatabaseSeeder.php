@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             SatkerSeeder::class,
             UserSeeder::class,
             PerkinSeeder::class,
+            SasaranKegiatanSeeder::class,
             IkskSeeder::class,
             KinerjaHarianSeeder::class,
         ]);
