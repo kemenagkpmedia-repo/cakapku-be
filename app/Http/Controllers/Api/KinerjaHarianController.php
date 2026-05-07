@@ -223,7 +223,7 @@ class KinerjaHarianController extends BaseController
             }
 
             $query = User::where('id', '!=', $pimpinan->id)
-                ->with(['kinerja_harians.iksk.perkin'])
+                ->with(['kinerja_harians.iksk.sasaran_kegiatan.perkin'])
                 ->orderBy('nama', 'asc');
 
             if (!$pimpinan->hasRole('SUPER ADMIN')) {

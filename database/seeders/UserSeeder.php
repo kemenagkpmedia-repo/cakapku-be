@@ -2,11 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Satker;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -15,50 +16,82 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        $roleSuperAdmin = Role::create(['name' => 'SUPER ADMIN']);
-        $roleAdmin = Role::create(['name' => 'ADMIN']);
-        $rolePimpinan = Role::create(['name' => 'PIMPINAN']);
-        $roleOperator = Role::create(['name' => 'OPERATOR']);
-        $roleUser = Role::create(['name' => 'USER']);
+        // 1. Create Roles
+        $roles = [
+            'SUPER ADMIN',
+            'ADMIN',
+            'PIMPINAN',
+            'OPERATOR',
+            'USER'
+        ];
 
-        $admin = User::create([
-            'nama' => 'Super Admin',
+        foreach ($roles as $roleName) {
+            Role::firstOrCreate(['name' => $roleName]);
+        }
+
+        // 2. Global Super Admin
+        $superAdmin = User::create([
+            'nama' => 'Master Super Admin',
             'username' => 'admin',
             'email' => 'admin@cakapku.test',
             'password' => Hash::make('password123'),
         ]);
-        $admin->assignRole($roleSuperAdmin);
+        $superAdmin->assignRole('SUPER ADMIN');
 
-        $pimpinan = User::create([
-            'id_satker' => 1,
-            'nama' => 'Bapak Pimpinan',
-            'username' => 'pimpinan',
-            'nip' => '198001012010011001',
-            'email' => 'pimpinan@cakapku.test',
-            'password' => Hash::make('password123'),
-        ]);
-        $pimpinan->assignRole($rolePimpinan);
+        // 3. Loop Satkers and create role-based users for each
+        $satkers = Satker::all();
 
-        // Update Satker 1's pimpinan
-        Satker::where('id', 1)->update(['id_pimpinan' => $pimpinan->id]);
+        foreach ($satkers as $satker) {
+            $slug = Str::slug($satker->nama_satker, '_');
 
-        $operator = User::create([
-            'id_satker' => 1,
-            'nama' => 'Mas Operator',
-            'username' => 'operator',
-            'email' => 'operator@cakapku.test',
-            'password' => Hash::make('password123'),
-        ]);
-        $operator->assignRole($roleOperator);
+            // Create ADMIN for this Satker
+            $admin = User::create([
+                'id_satker' => $satker->id,
+                'nama' => "Admin " . $satker->nama_satker,
+                'username' => "admin_" . $slug,
+                'email' => "admin." . str_replace('_', '.', $slug) . "@cakapku.test",
+                'password' => Hash::make('password123'),
+            ]);
+            $admin->assignRole('ADMIN');
 
-        $user1 = User::create([
-            'id_satker' => 1,
-            'nama' => 'User Satker Pusat',
-            'username' => 'user1',
-            'nip' => '199001012010011002',
-            'email' => 'user@cakapku.test',
-            'password' => Hash::make('password123'),
-        ]);
-        $user1->assignRole($roleUser);
+            // Create PIMPINAN for this Satker
+            $pimpinan = User::create([
+                'id_satker' => $satker->id,
+                'nama' => "Pimpinan " . $satker->nama_satker,
+                'username' => "pimpinan_" . $slug,
+                'nip' => '198' . rand(0, 9) . '0101201001' . rand(1000, 9999),
+                'email' => "pimpinan." . str_replace('_', '.', $slug) . "@cakapku.test",
+                'password' => Hash::make('password123'),
+                'jabatan' => 'Kepala ' . $satker->nama_satker,
+            ]);
+            $pimpinan->assignRole('PIMPINAN');
+
+            // Link Satker to this Pimpinan
+            $satker->update(['id_pimpinan' => $pimpinan->id]);
+
+            // Create OPERATOR for this Satker
+            $operator = User::create([
+                'id_satker' => $satker->id,
+                'nama' => "Operator " . $satker->nama_satker,
+                'username' => "operator_" . $slug,
+                'email' => "operator." . str_replace('_', '.', $slug) . "@cakapku.test",
+                'password' => Hash::make('password123'),
+            ]);
+            $operator->assignRole('OPERATOR');
+
+            // Create 2 USERS for this Satker
+            for ($i = 1; $i <= 2; $i++) {
+                $user = User::create([
+                    'id_satker' => $satker->id,
+                    'nama' => "Pegawai $i " . $satker->nama_satker,
+                    'username' => "user{$i}_" . $slug,
+                    'nip' => '199' . rand(0, 9) . '0101202001' . rand(1000, 9999),
+                    'email' => "user{$i}." . str_replace('_', '.', $slug) . "@cakapku.test",
+                    'password' => Hash::make('password123'),
+                    'jabatan' => 'Staf Pelaksana ' . $i,
+                ]);
+                $user->assignRole('USER');
+            }
+        }
     }
 }
