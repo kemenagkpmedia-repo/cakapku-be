@@ -35,8 +35,8 @@ class PerkinController extends BaseController
                 $q->where('status', true);
             });
 
-            // Jika bukan admin, filter berdasarkan satker user
-            if (!$user->hasRole('ADMIN')) {
+            // Jika bukan admin / super admin, filter berdasarkan satker user
+            if (!$user->hasRole(['ADMIN', 'SUPER ADMIN'])) {
                 $query->whereHas('satkers', function ($q) use ($user) {
                     $q->where('satkers.id', $user->id_satker);
                 });

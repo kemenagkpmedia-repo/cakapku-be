@@ -47,4 +47,106 @@ class User extends Authenticatable
     {
         return $this->hasOne(Satker::class, 'id_pimpinan');
     }
+
+    /**
+     * Get UI configuration based on user role
+     */
+    public function getFrontendConfig()
+    {
+        $role = strtoupper($this->getRoleNames()->first() ?? 'USER');
+        $config = [
+            'role' => $role,
+            'menus' => [],
+            'allowed_roles' => [],
+            'dashboard_path' => '/login',
+        ];
+
+        // 1. Allowed Roles for User Management
+        if ($role === 'SUPER ADMIN') {
+            $config['allowed_roles'] = [
+                ['label' => 'User', 'value' => 'USER'],
+                ['label' => 'Operator', 'value' => 'OPERATOR'],
+                ['label' => 'Pimpinan', 'value' => 'PIMPINAN'],
+                ['label' => 'Admin', 'value' => 'ADMIN'],
+                ['label' => 'Super Admin', 'value' => 'SUPER ADMIN'],
+            ];
+        } elseif ($role === 'ADMIN') {
+            $config['allowed_roles'] = [
+                ['label' => 'User', 'value' => 'USER'],
+                ['label' => 'Operator', 'value' => 'OPERATOR'],
+                ['label' => 'Pimpinan', 'value' => 'PIMPINAN'],
+            ];
+        }
+
+        // 2. Navigation Menus
+        switch ($role) {
+            case 'SUPER ADMIN':
+                $config['dashboard_path'] = '/admin/users';
+                $config['menus'] = [
+                    ['to' => '/admin/users', 'icon' => 'Users', 'label' => 'Manajemen User'],
+                    ['to' => '/admin/satker', 'icon' => 'Building', 'label' => 'Manajemen Satker'],
+                    ['to' => '/operator/periode', 'icon' => 'Calendar', 'label' => 'Manajemen Periode'],
+                    [
+                        'label' => 'Perjanjian Kinerja',
+                        'icon' => 'FileText',
+                        'children' => [
+                            ['to' => '/operator/perkin', 'icon' => 'Upload', 'label' => 'Import Perkin'],
+                            ['to' => '/operator/sk', 'icon' => 'Target', 'label' => 'Sasaran Kegiatan (SK)'],
+                            ['to' => '/operator/iksk', 'icon' => 'Activity', 'label' => 'Indikator Kinerja (IKSK)'],
+                        ]
+                    ],
+                    ['to' => '/operator/perkin-satker', 'icon' => 'Building', 'label' => 'Plotting Satker'],
+                ];
+                break;
+
+            case 'ADMIN':
+                $config['dashboard_path'] = '/admin/users';
+                $config['menus'] = [
+                    ['to' => '/admin/users', 'icon' => 'Users', 'label' => 'Manajemen User'],
+                    ['to' => '/admin/satker', 'icon' => 'Building', 'label' => 'Manajemen Satker'],
+                ];
+                break;
+
+            case 'OPERATOR':
+                $config['dashboard_path'] = '/operator/periode';
+                $config['menus'] = [
+                    ['to' => '/operator/periode', 'icon' => 'Calendar', 'label' => 'Manajemen Periode'],
+                    [
+                        'label' => 'Perjanjian Kinerja',
+                        'icon' => 'FileText',
+                        'children' => [
+                            ['to' => '/operator/perkin', 'icon' => 'Upload', 'label' => 'Import Perkin'],
+                            ['to' => '/operator/sk', 'icon' => 'Target', 'label' => 'Sasaran Kegiatan (SK)'],
+                            ['to' => '/operator/iksk', 'icon' => 'Activity', 'label' => 'Indikator Kinerja (IKSK)'],
+                        ]
+                    ],
+                    ['to' => '/operator/perkin-satker', 'icon' => 'Building', 'label' => 'Plotting Satker'],
+                    ['to' => '/operator/export', 'icon' => 'BarChart3', 'label' => 'Export Data'],
+                ];
+                break;
+
+            case 'PIMPINAN':
+                $config['dashboard_path'] = '/pimpinan/dashboard';
+                $config['menus'] = [
+                    ['to' => '/pimpinan/dashboard', 'icon' => 'LayoutDashboard', 'label' => 'Dashboard'],
+                    ['to' => '/pimpinan/monitoring', 'icon' => 'Users', 'label' => 'Monitoring Bawahan'],
+                    ['to' => '/user/kinerja', 'icon' => 'FileText', 'label' => 'Input Kinerja'],
+                    ['to' => '/user/riwayat', 'icon' => 'CheckSquare', 'label' => 'Riwayat Kinerja'],
+                    ['to' => '/user/export', 'icon' => 'BarChart3', 'label' => 'Export LKB'],
+                ];
+                break;
+
+            case 'USER':
+            default:
+                $config['dashboard_path'] = '/user/kinerja';
+                $config['menus'] = [
+                    ['to' => '/user/kinerja', 'icon' => 'FileText', 'label' => 'Input Kinerja'],
+                    ['to' => '/user/riwayat', 'icon' => 'CheckSquare', 'label' => 'Riwayat Kinerja'],
+                    ['to' => '/user/export', 'icon' => 'BarChart3', 'label' => 'Export LKB'],
+                ];
+                break;
+        }
+
+        return $config;
+    }
 }

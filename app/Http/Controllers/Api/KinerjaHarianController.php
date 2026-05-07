@@ -222,20 +222,22 @@ class KinerjaHarianController extends BaseController
                 return response()->json(['message' => 'Tidak terautentikasi.'], 401);
             }
 
-            // Pimpinan sees users in the satker they lead
-            $satker = $pimpinan->satker_dipimpin;
-            if (!$satker) {
-                return response()->json([
-                    'message' => 'Akses ditolak. Anda bukan pimpinan satker manapun.',
-                ], 403);
+            $query = User::where('id', '!=', $pimpinan->id)
+                ->with(['kinerja_harians.iksk.perkin'])
+                ->orderBy('nama', 'asc');
+
+            if (!$pimpinan->hasRole('SUPER ADMIN')) {
+                // Pimpinan sees users in the satker they lead
+                $satker = $pimpinan->satker_dipimpin;
+                if (!$satker) {
+                    return response()->json([
+                        'message' => 'Akses ditolak. Anda bukan pimpinan satker manapun.',
+                    ], 403);
+                }
+                $query->where('id_satker', $satker->id);
             }
 
-            // Return all users in this satker EXCEPT the pimpinan themselves
-            $users = User::where('id_satker', $satker->id)
-                ->where('id', '!=', $pimpinan->id)
-                ->with(['kinerja_harians.iksk.perkin'])
-                ->orderBy('nama', 'asc')
-                ->get();
+            $users = $query->get();
 
             return response()->json($users);
 

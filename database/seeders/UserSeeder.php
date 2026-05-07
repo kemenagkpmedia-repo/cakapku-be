@@ -15,6 +15,7 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        $roleSuperAdmin = Role::create(['name' => 'SUPER ADMIN']);
         $roleAdmin = Role::create(['name' => 'ADMIN']);
         $rolePimpinan = Role::create(['name' => 'PIMPINAN']);
         $roleOperator = Role::create(['name' => 'OPERATOR']);
@@ -26,7 +27,7 @@ class UserSeeder extends Seeder
             'email' => 'admin@cakapku.test',
             'password' => Hash::make('password123'),
         ]);
-        $admin->assignRole($roleAdmin);
+        $admin->assignRole($roleSuperAdmin);
 
         $pimpinan = User::create([
             'id_satker' => 1,

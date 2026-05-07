@@ -35,8 +35,8 @@ class IkskController extends BaseController
                 });
             });
 
-            // Filter Satker jika bukan admin
-            if (!$user->hasRole('ADMIN')) {
+            // Filter Satker jika bukan admin / super admin
+            if (!$user->hasRole(['ADMIN', 'SUPER ADMIN'])) {
                 $query->whereHas('sasaran_kegiatan.perkin.satkers', function ($q) use ($user) {
                     $q->where('satkers.id', $user->id_satker);
                 });

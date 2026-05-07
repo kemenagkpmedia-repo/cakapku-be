@@ -32,7 +32,15 @@ class UserController extends BaseController
     public function index(Request $request)
     {
         try {
+            $currentUser = $request->user();
             $query = User::with(['satker', 'roles']);
+
+            // Jika role ADMIN, sembunyikan SUPER ADMIN dan ADMIN lain
+            if ($currentUser->hasRole('ADMIN')) {
+                $query->whereDoesntHave('roles', function($q) {
+                    $q->whereIn('name', ['SUPER ADMIN', 'ADMIN']);
+                });
+            }
 
             if ($request->filled('role')) {
                 $query->role($request->input('role'));
@@ -115,6 +123,7 @@ class UserController extends BaseController
     public function store(Request $request)
     {
         try {
+            $currentUser = $request->user();
             $data = $request->validate([
                 'nama'      => 'required|string|max:255',
                 'username'  => 'required|string|max:255|unique:users',
@@ -128,6 +137,14 @@ class UserController extends BaseController
             ]);
 
             $role = $data['role'] ?? 'USER';
+
+            // Hierarki: ADMIN tidak boleh membuat SUPER ADMIN atau ADMIN
+            if ($currentUser->hasRole('ADMIN') && in_array(strtoupper($role), ['SUPER ADMIN', 'ADMIN'])) {
+                return response()->json([
+                    'message' => 'Anda tidak memiliki hak untuk memberikan akses Admin atau Super Admin.',
+                ], 403);
+            }
+
             unset($data['role']);
 
             $data['password'] = Hash::make($data['password']);
@@ -180,21 +197,38 @@ class UserController extends BaseController
     public function update(Request $request, $id)
     {
         try {
-            $user = User::findOrFail($id);
+            $currentUser = $request->user();
+            $targetUser = User::findOrFail($id);
             $data = $request->all();
+
+            // Hierarki: ADMIN tidak boleh merubah SUPER ADMIN atau ADMIN lain
+            if ($currentUser->hasRole('ADMIN')) {
+                if ($targetUser->hasRole(['SUPER ADMIN', 'ADMIN'])) {
+                    return response()->json([
+                        'message' => 'Anda tidak memiliki hak untuk mengubah data Admin atau Super Admin.',
+                    ], 403);
+                }
+
+                // ADMIN juga tidak boleh memberikan role ADMIN/SUPER ADMIN ke user lain
+                if (isset($data['role']) && in_array(strtoupper($data['role']), ['SUPER ADMIN', 'ADMIN'])) {
+                    return response()->json([
+                        'message' => 'Anda tidak memiliki hak untuk memberikan akses Admin atau Super Admin.',
+                    ], 403);
+                }
+            }
 
             if (isset($data['password'])) {
                 $data['password'] = Hash::make($data['password']);
             }
 
             if (isset($data['role'])) {
-                $user->syncRoles([$data['role']]);
+                $targetUser->syncRoles([$data['role']]);
                 unset($data['role']);
             }
 
-            $user->update($data);
+            $targetUser->update($data);
 
-            return response()->json($user);
+            return response()->json($targetUser);
 
         } catch (ModelNotFoundException $e) {
             return response()->json([
@@ -228,8 +262,17 @@ class UserController extends BaseController
     public function destroy($id)
     {
         try {
-            $user = User::findOrFail($id);
-            $user->delete();
+            $currentUser = request()->user();
+            $targetUser = User::findOrFail($id);
+
+            // Hierarki: ADMIN tidak boleh menghapus SUPER ADMIN atau ADMIN lain
+            if ($currentUser->hasRole('ADMIN') && $targetUser->hasRole(['SUPER ADMIN', 'ADMIN'])) {
+                return response()->json([
+                    'message' => 'Anda tidak memiliki hak untuk menghapus Admin atau Super Admin.',
+                ], 403);
+            }
+
+            $targetUser->delete();
 
             return response()->json(['message' => 'User berhasil dihapus.']);
 

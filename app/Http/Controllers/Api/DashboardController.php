@@ -30,17 +30,20 @@ class DashboardController extends BaseController
                 return response()->json(['message' => 'Tidak terautentikasi.'], 401);
             }
 
-            // Pimpinan sees users in the satker they lead
-            $satker = $pimpinan->satker_dipimpin;
-            if (!$satker) {
-                return response()->json([
-                    'message' => 'Akses ditolak. Anda bukan pimpinan satker manapun.',
-                ], 403);
+            $query = User::with(['kinerja_harians.iksk']);
+
+            if (!$pimpinan->hasRole('SUPER ADMIN')) {
+                // Pimpinan sees users in the satker they lead
+                $satker = $pimpinan->satker_dipimpin;
+                if (!$satker) {
+                    return response()->json([
+                        'message' => 'Akses ditolak. Anda bukan pimpinan satker manapun.',
+                    ], 403);
+                }
+                $query->where('id_satker', $satker->id);
             }
 
-            $bawahan = User::where('id_satker', $satker->id)
-                ->with(['kinerja_harians.iksk'])
-                ->get();
+            $bawahan = $query->get();
 
             return response()->json($bawahan);
 

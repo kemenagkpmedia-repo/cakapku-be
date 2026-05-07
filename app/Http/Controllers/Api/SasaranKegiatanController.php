@@ -22,8 +22,8 @@ class SasaranKegiatanController extends BaseController
                 });
             });
 
-            // Filter Satker jika bukan admin
-            if (!$user->hasRole('ADMIN')) {
+            // Filter Satker jika bukan admin / super admin
+            if (!$user->hasRole(['ADMIN', 'SUPER ADMIN'])) {
                 $query->whereHas('perkin.satkers', function ($q) use ($user) {
                     $q->where('satkers.id', $user->id_satker);
                 });

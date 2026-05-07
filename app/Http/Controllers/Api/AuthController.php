@@ -59,6 +59,7 @@ class AuthController extends BaseController
                 'access_token' => $token,
                 'token_type'   => 'Bearer',
                 'user'         => $user,
+                'config'       => $user->getFrontendConfig(),
             ]);
 
         } catch (ValidationException $e) {
@@ -78,6 +79,27 @@ class AuthController extends BaseController
             ], 500);
         }
     }
+    /**
+     * @OA\Get(
+     *     path="/api/me",
+     *     tags={"Authentication"},
+     *     summary="Get current user info",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response="200", description="User info with config"),
+     *     @OA\Response(response="401", description="Unauthenticated")
+     * )
+     */
+    public function me(Request $request)
+    {
+        $user = $request->user();
+        $user->role = $user->getRoleNames()->first();
+        
+        return response()->json([
+            'user'   => $user,
+            'config' => $user->getFrontendConfig(),
+        ]);
+    }
+
 
     /**
      * @OA\Post(
