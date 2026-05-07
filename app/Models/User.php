@@ -107,6 +107,10 @@ class User extends Authenticatable
             ['to' => '/user/export', 'icon' => 'BarChart3', 'label' => 'Export LKB'],
         ];
 
+        $commonMenus = [
+            ['to' => '/user/biodata', 'icon' => 'User', 'label' => 'Biodata Pegawai'],
+        ];
+
         // 2. Navigation Menus based on ACTIVE ROLE
         switch ($role) {
             case 'SUPER ADMIN':
@@ -125,7 +129,7 @@ class User extends Authenticatable
                         ]
                     ],
                     ['to' => '/operator/perkin-satker', 'icon' => 'Building', 'label' => 'Plotting Satker'],
-                    ...$selfKinerjaMenus
+                    ...$commonMenus
                 ];
                 break;
 
@@ -134,7 +138,7 @@ class User extends Authenticatable
                 $config['menus'] = [
                     ['to' => '/admin/users', 'icon' => 'Users', 'label' => 'Manajemen User'],
                     ['to' => '/admin/satker', 'icon' => 'Building', 'label' => 'Manajemen Satker'],
-                    ...$selfKinerjaMenus
+                    ...$commonMenus
                 ];
                 break;
 
@@ -153,7 +157,7 @@ class User extends Authenticatable
                     ],
                     ['to' => '/operator/perkin-satker', 'icon' => 'Building', 'label' => 'Plotting Satker'],
                     ['to' => '/operator/export', 'icon' => 'BarChart3', 'label' => 'Export Data'],
-                    ...$selfKinerjaMenus
+                    ...$commonMenus
                 ];
                 break;
 
@@ -162,14 +166,17 @@ class User extends Authenticatable
                 $config['menus'] = [
                     ['to' => '/pimpinan/dashboard', 'icon' => 'LayoutDashboard', 'label' => 'Dashboard'],
                     ['to' => '/pimpinan/monitoring', 'icon' => 'Users', 'label' => 'Monitoring Bawahan'],
-                    ...$selfKinerjaMenus
+                    ...$commonMenus
                 ];
                 break;
 
             case 'USER':
             default:
                 $config['dashboard_path'] = '/user/kinerja';
-                $config['menus'] = $selfKinerjaMenus;
+                $config['menus'] = [
+                    ...$selfKinerjaMenus,
+                    ...$commonMenus
+                ];
                 break;
         }
 
