@@ -49,19 +49,41 @@ class User extends Authenticatable
     }
 
     /**
+     * Role yang sedang aktif untuk request saat ini.
+     * Tidak disimpan di database, hanya di memori selama request.
+     */
+    public $active_role = null;
+
+    /**
      * Get UI configuration based on user role
      */
-    public function getFrontendConfig()
+    public function getFrontendConfig($requestedRole = null)
     {
-        $role = strtoupper($this->getRoleNames()->first() ?? 'USER');
+        $allRoles = $this->getRoleNames()->map(fn($r) => strtoupper($r))->toArray();
+
+        if ($requestedRole) {
+            $role = strtoupper($requestedRole);
+            // Pastikan role yang diminta memang dimiliki oleh user
+            if (!in_array($role, $allRoles) && !empty($allRoles)) {
+                $role = in_array('USER', $allRoles) ? 'USER' : strtoupper($allRoles[0]);
+            }
+        } else {
+            // Prioritas: active_role property > default logic
+            $role = $this->active_role ?: (in_array('USER', $allRoles) ? 'USER' : strtoupper($allRoles[0] ?? 'USER'));
+        }
+
+        // Simpan ke property agar sinkron
+        $this->active_role = $role;
+
         $config = [
-            'role' => $role,
+            'active_role' => $role,
+            'all_roles' => $allRoles,
             'menus' => [],
             'allowed_roles' => [],
             'dashboard_path' => '/login',
         ];
 
-        // 1. Allowed Roles for User Management
+        // 1. Allowed Roles for User Management (Tetap pakai active role untuk filter menu)
         if ($role === 'SUPER ADMIN') {
             $config['allowed_roles'] = [
                 ['label' => 'User', 'value' => 'USER'],
@@ -78,7 +100,14 @@ class User extends Authenticatable
             ];
         }
 
-        // 2. Navigation Menus
+        // Common menus for ALL ROLES (Self performance reporting)
+        $selfKinerjaMenus = [
+            ['to' => '/user/kinerja', 'icon' => 'FileText', 'label' => 'Input Kinerja'],
+            ['to' => '/user/riwayat', 'icon' => 'CheckSquare', 'label' => 'Riwayat Kinerja'],
+            ['to' => '/user/export', 'icon' => 'BarChart3', 'label' => 'Export LKB'],
+        ];
+
+        // 2. Navigation Menus based on ACTIVE ROLE
         switch ($role) {
             case 'SUPER ADMIN':
                 $config['dashboard_path'] = '/admin/users';
@@ -96,6 +125,7 @@ class User extends Authenticatable
                         ]
                     ],
                     ['to' => '/operator/perkin-satker', 'icon' => 'Building', 'label' => 'Plotting Satker'],
+                    ...$selfKinerjaMenus
                 ];
                 break;
 
@@ -104,6 +134,7 @@ class User extends Authenticatable
                 $config['menus'] = [
                     ['to' => '/admin/users', 'icon' => 'Users', 'label' => 'Manajemen User'],
                     ['to' => '/admin/satker', 'icon' => 'Building', 'label' => 'Manajemen Satker'],
+                    ...$selfKinerjaMenus
                 ];
                 break;
 
@@ -122,6 +153,7 @@ class User extends Authenticatable
                     ],
                     ['to' => '/operator/perkin-satker', 'icon' => 'Building', 'label' => 'Plotting Satker'],
                     ['to' => '/operator/export', 'icon' => 'BarChart3', 'label' => 'Export Data'],
+                    ...$selfKinerjaMenus
                 ];
                 break;
 
@@ -130,23 +162,40 @@ class User extends Authenticatable
                 $config['menus'] = [
                     ['to' => '/pimpinan/dashboard', 'icon' => 'LayoutDashboard', 'label' => 'Dashboard'],
                     ['to' => '/pimpinan/monitoring', 'icon' => 'Users', 'label' => 'Monitoring Bawahan'],
-                    ['to' => '/user/kinerja', 'icon' => 'FileText', 'label' => 'Input Kinerja'],
-                    ['to' => '/user/riwayat', 'icon' => 'CheckSquare', 'label' => 'Riwayat Kinerja'],
-                    ['to' => '/user/export', 'icon' => 'BarChart3', 'label' => 'Export LKB'],
+                    ...$selfKinerjaMenus
                 ];
                 break;
 
             case 'USER':
             default:
                 $config['dashboard_path'] = '/user/kinerja';
-                $config['menus'] = [
-                    ['to' => '/user/kinerja', 'icon' => 'FileText', 'label' => 'Input Kinerja'],
-                    ['to' => '/user/riwayat', 'icon' => 'CheckSquare', 'label' => 'Riwayat Kinerja'],
-                    ['to' => '/user/export', 'icon' => 'BarChart3', 'label' => 'Export LKB'],
-                ];
+                $config['menus'] = $selfKinerjaMenus;
                 break;
         }
 
         return $config;
+    }
+    
+    public function isActiveRole($role, $request = null)
+    {
+        $role = strtoupper($role);
+        
+        // Prioritas 1: Property yang sudah di-set oleh middleware SetActiveRole
+        if ($this->active_role) {
+            return strtoupper($this->active_role) === $role;
+        }
+
+        // Prioritas 2: Header langsung (jika middleware belum jalan atau instance berbeda)
+        $activeRole = $request ? strtoupper($request->header('X-Active-Role')) : null;
+
+        if ($activeRole) {
+            return $activeRole === $role && $this->hasRole($role);
+        }
+
+        // Fallback: Gunakan logic default yang sama dengan getFrontendConfig
+        $allRoles = $this->getRoleNames()->map(fn($r) => strtoupper($r))->toArray();
+        $defaultRole = in_array('USER', $allRoles) ? 'USER' : (strtoupper($allRoles[0] ?? 'USER'));
+        
+        return $defaultRole === $role;
     }
 }

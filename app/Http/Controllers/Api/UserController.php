@@ -35,11 +35,18 @@ class UserController extends BaseController
             $currentUser = $request->user();
             $query = User::with(['satker', 'roles']);
 
-            // Jika role ADMIN, sembunyikan SUPER ADMIN dan ADMIN lain
-            if ($currentUser->hasRole('ADMIN')) {
-                $query->whereDoesntHave('roles', function($q) {
+            // Jika role ADMIN, sembunyikan SUPER ADMIN dan ADMIN lain, serta batasi hanya pada Satker yang sama
+            if ($currentUser->isActiveRole('ADMIN', $request)) {
+                $query->whereDoesntHave('roles', function ($q) {
                     $q->whereIn('name', ['SUPER ADMIN', 'ADMIN']);
                 });
+
+                if ($currentUser->id_satker) {
+                    $query->where('id_satker', $currentUser->id_satker);
+                } else {
+                    // Jika Admin tidak punya Satker, dia tidak bisa melihat siapa-siapa (opsional, tergantung kebijakan)
+                    $query->whereRaw('1 = 0');
+                }
             }
 
             if ($request->filled('role')) {
@@ -47,7 +54,9 @@ class UserController extends BaseController
             }
 
             $users = $query->get()->map(function ($user) {
-                $user->role = $user->getRoleNames()->first() ?? null;
+                // Gunakan nama property yang tidak bentrok dengan relationship 'roles'
+                $user->assigned_roles = $user->getRoleNames()->map(fn($r) => strtoupper($r));
+                $user->role = $user->assigned_roles->first();
                 return $user;
             });
 
@@ -55,7 +64,8 @@ class UserController extends BaseController
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengambil data User.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }
@@ -77,22 +87,33 @@ class UserController extends BaseController
      *     @OA\Response(response="500", description="Server error")
      * )
      */
-    public function byRole($role)
+    public function byRole(Request $request, $role)
     {
         try {
-            $users = User::with(['satker', 'roles'])
-                ->role($role)
-                ->get()
-                ->map(function ($user) {
-                    $user->role = $user->getRoleNames()->first() ?? null;
-                    return $user;
-                });
+            $currentUser = request()->user();
+            $query = User::with(['satker', 'roles'])->role($role);
+
+            // Filter Satker jika ADMIN
+            if ($currentUser->isActiveRole('ADMIN', $request)) {
+                if ($currentUser->id_satker) {
+                    $query->where('id_satker', $currentUser->id_satker);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+
+            $users = $query->get()->map(function ($user) {
+                $user->assigned_roles = $user->getRoleNames()->map(fn($r) => strtoupper($r));
+                $user->role = $user->assigned_roles->first();
+                return $user;
+            });
 
             return response()->json($users);
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengambil data User berdasarkan role.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }
@@ -125,33 +146,36 @@ class UserController extends BaseController
         try {
             $currentUser = $request->user();
             $data = $request->validate([
-                'nama'      => 'required|string|max:255',
-                'username'  => 'required|string|max:255|unique:users',
-                'nip'       => 'nullable|string|max:50',
-                'email'     => 'nullable|email|unique:users',
-                'password'  => 'required|string|min:6',
-                'role'      => 'nullable|string',
+                'nama' => 'required|string|max:255',
+                'username' => 'required|string|max:255|unique:users',
+                'nip' => 'nullable|string|max:50',
+                'email' => 'nullable|email|unique:users',
+                'password' => 'required|string|min:6',
+                'role' => 'nullable|string',
                 'id_satker' => 'nullable|integer',
-                'jabatan'   => 'nullable|string',
+                'jabatan' => 'nullable|string',
                 'gol_ruang' => 'nullable|string',
+                'roles' => 'nullable|array',
+                'role' => 'nullable|string',
             ]);
 
-            $role = $data['role'] ?? 'USER';
+            $roles = $data['roles'] ?? ($data['role'] ?? ['USER']);
+            if (is_string($roles))
+                $roles = [$roles];
 
-            // Hierarki: ADMIN tidak boleh membuat SUPER ADMIN atau ADMIN
-            if ($currentUser->hasRole('ADMIN') && in_array(strtoupper($role), ['SUPER ADMIN', 'ADMIN'])) {
+            // Hanya SUPER ADMIN yang boleh membuat user baru
+            if (!$currentUser->isActiveRole('SUPER ADMIN', $request)) {
                 return response()->json([
-                    'message' => 'Anda tidak memiliki hak untuk memberikan akses Admin atau Super Admin.',
+                    'message' => 'Anda tidak memiliki hak akses untuk menambah user baru.',
                 ], 403);
             }
-
-            unset($data['role']);
+            unset($data['role'], $data['roles']);
 
             $data['password'] = Hash::make($data['password']);
             $user = User::create($data);
 
-            if ($role) {
-                $user->assignRole($role);
+            if (!empty($roles)) {
+                $user->syncRoles($roles);
             }
 
             return response()->json($user, 201);
@@ -159,17 +183,17 @@ class UserController extends BaseController
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Data tidak valid.',
-                'errors'  => $e->errors(),
+                'errors' => $e->errors(),
             ], 422);
         } catch (QueryException $e) {
             return response()->json([
                 'message' => 'Gagal membuat User. Kemungkinan username atau email sudah digunakan.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -201,19 +225,34 @@ class UserController extends BaseController
             $targetUser = User::findOrFail($id);
             $data = $request->all();
 
-            // Hierarki: ADMIN tidak boleh merubah SUPER ADMIN atau ADMIN lain
-            if ($currentUser->hasRole('ADMIN')) {
-                if ($targetUser->hasRole(['SUPER ADMIN', 'ADMIN'])) {
+            // Hierarki & Pembatasan Edit Satker
+            if (!$currentUser->isActiveRole('SUPER ADMIN', $request)) {
+                // Jika bukan Super Admin, dilarang merubah Satker
+                if (isset($data['id_satker']) && $data['id_satker'] != $targetUser->id_satker) {
                     return response()->json([
-                        'message' => 'Anda tidak memiliki hak untuk mengubah data Admin atau Super Admin.',
+                        'message' => 'Hanya Super Admin yang dapat merubah Satuan Kerja user.',
                     ], 403);
                 }
 
-                // ADMIN juga tidak boleh memberikan role ADMIN/SUPER ADMIN ke user lain
-                if (isset($data['role']) && in_array(strtoupper($data['role']), ['SUPER ADMIN', 'ADMIN'])) {
-                    return response()->json([
-                        'message' => 'Anda tidak memiliki hak untuk memberikan akses Admin atau Super Admin.',
-                    ], 403);
+                // ADMIN tidak boleh merubah SUPER ADMIN atau ADMIN lain
+                if ($currentUser->isActiveRole('ADMIN', $request)) {
+                    if ($targetUser->hasRole(['SUPER ADMIN', 'ADMIN'])) {
+                        return response()->json([
+                            'message' => 'Anda tidak memiliki hak untuk mengubah data Admin atau Super Admin.',
+                        ], 403);
+                    }
+                }
+            }
+
+            // ADMIN juga tidak boleh memberikan role ADMIN/SUPER ADMIN ke user lain
+            if ($currentUser->isActiveRole('ADMIN', $request)) {
+                $requestedRoles = $data['roles'] ?? (isset($data['role']) ? [$data['role']] : []);
+                foreach ($requestedRoles as $r) {
+                    if (in_array(strtoupper($r), ['SUPER ADMIN', 'ADMIN'])) {
+                        return response()->json([
+                            'message' => 'Anda tidak memiliki hak untuk memberikan akses Admin atau Super Admin.',
+                        ], 403);
+                    }
                 }
             }
 
@@ -221,7 +260,10 @@ class UserController extends BaseController
                 $data['password'] = Hash::make($data['password']);
             }
 
-            if (isset($data['role'])) {
+            if (isset($data['roles'])) {
+                $targetUser->syncRoles($data['roles']);
+                unset($data['roles']);
+            } elseif (isset($data['role'])) {
                 $targetUser->syncRoles([$data['role']]);
                 unset($data['role']);
             }
@@ -236,13 +278,14 @@ class UserController extends BaseController
             ], 404);
         } catch (QueryException $e) {
             return response()->json([
-                'message' => 'Gagal memperbarui User.',
-                'error'   => $e->getMessage(),
+                'message' => 'Gagal memperbarui User. Terjadi kesalahan database.',
+                'error' => $e->getMessage(),
             ], 500);
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString() // Menambahkan trace untuk debug internal
             ], 500);
         }
     }
@@ -265,10 +308,10 @@ class UserController extends BaseController
             $currentUser = request()->user();
             $targetUser = User::findOrFail($id);
 
-            // Hierarki: ADMIN tidak boleh menghapus SUPER ADMIN atau ADMIN lain
-            if ($currentUser->hasRole('ADMIN') && $targetUser->hasRole(['SUPER ADMIN', 'ADMIN'])) {
+            // Hanya SUPER ADMIN yang boleh menghapus user
+            if (!$currentUser->isActiveRole('SUPER ADMIN', request())) {
                 return response()->json([
-                    'message' => 'Anda tidak memiliki hak untuk menghapus Admin atau Super Admin.',
+                    'message' => 'Anda tidak memiliki hak akses untuk menghapus user.',
                 ], 403);
             }
 
@@ -283,12 +326,12 @@ class UserController extends BaseController
         } catch (QueryException $e) {
             return response()->json([
                 'message' => 'Gagal menghapus User. Mungkin masih ada data terkait.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

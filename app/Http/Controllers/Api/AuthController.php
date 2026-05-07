@@ -53,13 +53,15 @@ class AuthController extends BaseController
             // Token akan kedaluwarsa dalam 24 jam
             $token = $user->createToken('auth_token', ['*'], now()->addHours(24))->plainTextToken;
 
-            $user->role = $user->getRoleNames()->first();
+            // getFrontendConfig() tanpa parameter akan default ke USER
+            $config = $user->getFrontendConfig();
+            $user->role = $config['active_role'];
 
             return response()->json([
                 'access_token' => $token,
                 'token_type'   => 'Bearer',
                 'user'         => $user,
-                'config'       => $user->getFrontendConfig(),
+                'config'       => $config,
             ]);
 
         } catch (ValidationException $e) {
@@ -92,11 +94,67 @@ class AuthController extends BaseController
     public function me(Request $request)
     {
         $user = $request->user();
-        $user->role = $user->getRoleNames()->first();
+        
+        // Prioritas: query param > X-Active-Role header > default (USER)
+        $requestedRole = $request->query('role') ?: $request->header('X-Active-Role');
+        
+        // Validasi jika requestedRole ada, pastikan user punya role tersebut
+        if ($requestedRole && !$user->hasRole($requestedRole)) {
+            $requestedRole = null;
+        }
+
+        $config = $user->getFrontendConfig($requestedRole);
+        $user->role = $config['active_role'];
         
         return response()->json([
             'user'   => $user,
-            'config' => $user->getFrontendConfig(),
+            'config' => $config,
+        ]);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/switch-role",
+     *     tags={"Authentication"},
+     *     summary="Switch active role and get new config",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"role"},
+     *             @OA\Property(property="role", type="string", example="ADMIN")
+     *         )
+     *     ),
+     *     @OA\Response(response="200", description="New config returned"),
+     *     @OA\Response(response="401", description="Unauthenticated"),
+     *     @OA\Response(response="403", description="Forbidden")
+     * )
+     */
+    public function switchRole(Request $request)
+    {
+        $request->validate([
+            'role' => 'required|string',
+        ]);
+
+        $user = $request->user();
+        $requestedRole = strtoupper($request->role);
+        
+        if (!$user->hasRole($requestedRole)) {
+            return response()->json([
+                'message' => 'Anda tidak memiliki akses ke role ini.'
+            ], 403);
+        }
+
+        // Set role aktif ke properti agar getFrontendConfig menggunakannya
+        $user->active_role = $requestedRole;
+        $config = $user->getFrontendConfig($requestedRole);
+        
+        // Tambahkan property role untuk memudahkan frontend (legacy compatibility)
+        $user->role = $config['active_role'];
+        
+        return response()->json([
+            'user'   => $user,
+            'config' => $config,
         ]);
     }
 

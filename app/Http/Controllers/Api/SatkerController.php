@@ -55,6 +55,9 @@ class SatkerController extends BaseController
     public function store(Request $request)
     {
         try {
+            if (!$request->user()->isActiveRole('SUPER ADMIN', $request)) {
+                return response()->json(['message' => 'Hanya Super Admin yang dapat menambah Satker.'], 403);
+            }
             $data = $request->validate([
                 'nama_satker' => 'required|string|max:255',
                 'id_pimpinan' => 'nullable|integer|exists:users,id',
@@ -104,6 +107,9 @@ class SatkerController extends BaseController
     public function update(Request $request, $id)
     {
         try {
+            if (!$request->user()->isActiveRole('SUPER ADMIN', $request)) {
+                return response()->json(['message' => 'Hanya Super Admin yang dapat mengubah Satker.'], 403);
+            }
             $satker = Satker::findOrFail($id);
             $satker->update($request->all());
 
@@ -138,9 +144,12 @@ class SatkerController extends BaseController
      *     @OA\Response(response="500", description="Server error")
      * )
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         try {
+            if (!$request->user()->isActiveRole('SUPER ADMIN', $request)) {
+                return response()->json(['message' => 'Hanya Super Admin yang dapat menghapus Satker.'], 403);
+            }
             $satker = Satker::findOrFail($id);
             $satker->delete();
 

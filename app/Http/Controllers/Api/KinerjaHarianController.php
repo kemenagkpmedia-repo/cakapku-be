@@ -226,7 +226,7 @@ class KinerjaHarianController extends BaseController
                 ->with(['kinerja_harians.iksk.sasaran_kegiatan.perkin'])
                 ->orderBy('nama', 'asc');
 
-            if (!$pimpinan->hasRole('SUPER ADMIN')) {
+            if (!$pimpinan->isActiveRole('SUPER ADMIN', $request)) {
                 // Pimpinan sees users in the satker they lead
                 $satker = $pimpinan->satker_dipimpin;
                 if (!$satker) {

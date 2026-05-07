@@ -32,7 +32,7 @@ class DashboardController extends BaseController
 
             $query = User::with(['kinerja_harians.iksk']);
 
-            if (!$pimpinan->hasRole('SUPER ADMIN')) {
+            if (!$pimpinan->isActiveRole('SUPER ADMIN', $request)) {
                 // Pimpinan sees users in the satker they lead
                 $satker = $pimpinan->satker_dipimpin;
                 if (!$satker) {
