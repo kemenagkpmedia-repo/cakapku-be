@@ -302,6 +302,11 @@ class KinerjaHarianController extends BaseController
                 'uraian' => true
             ];
 
+            $enableAnchorAtasan = filter_var($request->query('enable_anchor_atasan', false), FILTER_VALIDATE_BOOLEAN);
+            $anchorAtasanText = $request->query('anchor_atasan_text', '$ttd_atasan');
+            $enableAnchorPegawai = filter_var($request->query('enable_anchor_pegawai', false), FILTER_VALIDATE_BOOLEAN);
+            $anchorPegawaiText = $request->query('anchor_pegawai_text', '$ttd_pegawai');
+
             // 2. Fetch satker name
             $satker = \App\Models\Satker::find($user->id_satker ?: $user->satker_id);
             $satkerName = $satker ? $satker->nama_satker : '-';
@@ -337,7 +342,11 @@ class KinerjaHarianController extends BaseController
                 'fontSize' => $fontSize,
                 'orientation' => $orientation,
                 'showColumns' => $showColumns,
-                'records' => $records
+                'records' => $records,
+                'enableAnchorAtasan' => $enableAnchorAtasan,
+                'anchorAtasanText' => $anchorAtasanText,
+                'enableAnchorPegawai' => $enableAnchorPegawai,
+                'anchorPegawaiText' => $anchorPegawaiText
             ];
 
             // 6. Generate pristine A4 PDF using Laravel DomPDF

@@ -259,14 +259,26 @@
         <div class="signature-col">
             <p>Mengetahui,</p>
             <p>Atasan Langsung</p>
-            <div class="signature-space"></div>
+            <div class="signature-space">
+                @if(isset($enableAnchorAtasan) && $enableAnchorAtasan)
+                    <div style="font-size: 8.5pt; color: #0f172a; font-weight: normal; padding-top: 25px; text-align: center; font-family: Courier, monospace;">
+                        {{ $anchorAtasanText }}
+                    </div>
+                @endif
+            </div>
             <div class="signature-name">{{ $atasanName ?: '..........................................' }}</div>
             <div class="signature-nip">NIP. {{ $atasanNip ?: '..........................................' }}</div>
         </div>
         <div class="signature-col">
             <p>{{ $signatureDate ?: '..........................................' }}</p>
             <p>{{ $pegawaiJabatan ?: 'Pegawai Negeri Sipil' }},</p>
-            <div class="signature-space"></div>
+            <div class="signature-space">
+                @if(isset($enableAnchorPegawai) && $enableAnchorPegawai)
+                    <div style="font-size: 8.5pt; color: #0f172a; font-weight: normal; padding-top: 25px; text-align: center; font-family: Courier, monospace;">
+                        {{ $anchorPegawaiText }}
+                    </div>
+                @endif
+            </div>
             <div class="signature-name">{{ $pegawaiName }}</div>
             <div class="signature-nip">NIP. {{ $pegawaiNip }}</div>
         </div>
