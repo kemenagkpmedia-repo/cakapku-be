@@ -265,7 +265,7 @@
         </div>
         <div class="signature-col">
             <p>{{ $signatureDate ?: '..........................................' }}</p>
-            <p>Pegawai yang bersangkutan</p>
+            <p>{{ $pegawaiJabatan ?: 'Pegawai Negeri Sipil' }},</p>
             <div class="signature-space"></div>
             <div class="signature-name">{{ $pegawaiName }}</div>
             <div class="signature-nip">NIP. {{ $pegawaiNip }}</div>
