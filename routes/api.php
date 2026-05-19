@@ -36,6 +36,7 @@ Route::middleware(['auth:sanctum', 'role.active'])->group(function () {
     Route::apiResource('iksks', IkskController::class);
     
     Route::get('kinerja-harian/bawahan', [KinerjaHarianController::class, 'bawahan']);
+    Route::get('kinerja-harian/export-pdf', [KinerjaHarianController::class, 'exportPdf']);
     Route::apiResource('kinerja-harian', KinerjaHarianController::class);
     
     Route::get('/dashboard/bawahan', [DashboardController::class, 'pekerjaanBawahan']);

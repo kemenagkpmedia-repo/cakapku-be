@@ -248,4 +248,113 @@ class KinerjaHarianController extends BaseController
             ], 500);
         }
     }
+
+    /**
+     * @OA\Get(
+     *     path="/api/kinerja-harian/export-pdf",
+     *     tags={"Kinerja Harian"},
+     *     summary="Export Kinerja Harian to A4 PDF",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(name="month", in="query", required=true, @OA\Schema(type="string")),
+     *     @OA\Parameter(name="year", in="query", required=true, @OA\Schema(type="string")),
+     *     @OA\Parameter(name="pegawai_name", in="query", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="pegawai_nip", in="query", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="pegawai_jabatan", in="query", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="atasan_name", in="query", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="atasan_nip", in="query", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="signature_date", in="query", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="fontSize", in="query", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="orientation", in="query", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="columns", in="query", @OA\Schema(type="string")),
+     *     @OA\Response(response="200", description="Streamed PDF file attachment"),
+     *     @OA\Response(response="401", description="Unauthenticated"),
+     *     @OA\Response(response="500", description="Server error")
+     * )
+     */
+    public function exportPdf(Request $request)
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['message' => 'Tidak terautentikasi.'], 401);
+            }
+
+            // 1. Validate Query Parameters
+            $month = $request->query('month', date('m'));
+            $year = $request->query('year', date('Y'));
+            $pegawaiName = $request->query('pegawai_name', $user->nama ?: $user->name);
+            $pegawaiNip = $request->query('pegawai_nip', $user->nip);
+            $pegawaiJabatan = $request->query('pegawai_jabatan', $user->jabatan);
+            
+            $atasanName = $request->query('atasan_name', '');
+            $atasanNip = $request->query('atasan_nip', '');
+            $signatureDate = $request->query('signature_date', '');
+            $fontSize = $request->query('fontSize', 'small');
+            $orientation = $request->query('orientation', 'landscape');
+            
+            // Decode toggled columns (passed as JSON string or arrays)
+            $showColumnsJson = $request->query('columns', '{"status":true,"perkin":true,"iksk":true,"volume":true,"uraian":true}');
+            $showColumns = json_decode($showColumnsJson, true) ?: [
+                'status' => true,
+                'perkin' => true,
+                'iksk' => true,
+                'volume' => true,
+                'uraian' => true
+            ];
+
+            // 2. Fetch satker name
+            $satker = \App\Models\Satker::find($user->id_satker ?: $user->satker_id);
+            $satkerName = $satker ? $satker->nama_satker : '-';
+
+            // 3. Fetch Kinerja records for this user matching selected month and year
+            $records = KinerjaHarian::with(['iksk.sasaran_kegiatan.perkin'])
+                ->where('id_user', $user->id)
+                ->whereYear('tanggal', $year)
+                ->whereMonth('tanggal', $month)
+                ->orderBy('tanggal', 'asc')
+                ->get();
+
+            // 4. Map month number to Indonesian name
+            $monthsIndo = [
+                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
+                '04' => 'April', '05' => 'Mei', '06' => 'Juni',
+                '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
+                '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+            ];
+            $monthName = isset($monthsIndo[$month]) ? $monthsIndo[$month] : $month;
+
+            // 5. Build rendering view parameters
+            $data = [
+                'monthName' => $monthName,
+                'year' => $year,
+                'pegawaiName' => $pegawaiName,
+                'pegawaiNip' => $pegawaiNip,
+                'pegawaiJabatan' => $pegawaiJabatan,
+                'satkerName' => $satkerName,
+                'atasanName' => $atasanName,
+                'atasanNip' => $atasanNip,
+                'signatureDate' => $signatureDate,
+                'fontSize' => $fontSize,
+                'orientation' => $orientation,
+                'showColumns' => $showColumns,
+                'records' => $records
+            ];
+
+            // 6. Generate pristine A4 PDF using Laravel DomPDF
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.lkb_pdf', $data);
+            $pdf->setPaper('a4', $orientation);
+
+            // Stream download as attachment with custom filename
+            $cleanName = str_replace(' ', '_', $pegawaiName);
+            $fileName = "LKB_{$monthName}_{$year}_{$cleanName}.pdf";
+            
+            return $pdf->download($fileName);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghasilkan Laporan Kinerja Bulanan.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
