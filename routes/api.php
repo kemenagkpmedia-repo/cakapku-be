@@ -37,6 +37,7 @@ Route::middleware(['auth:sanctum', 'role.active'])->group(function () {
     
     Route::get('kinerja-harian/bawahan', [KinerjaHarianController::class, 'bawahan']);
     Route::get('kinerja-harian/export-pdf', [KinerjaHarianController::class, 'exportPdf']);
+    Route::post('kinerja-harian/export-pdf-zip', [KinerjaHarianController::class, 'exportPdfZip']);
     Route::apiResource('kinerja-harian', KinerjaHarianController::class);
     
     Route::get('/dashboard/bawahan', [DashboardController::class, 'pekerjaanBawahan']);

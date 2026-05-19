@@ -35,8 +35,8 @@ class UserController extends BaseController
             $currentUser = $request->user();
             $query = User::with(['satker', 'roles']);
 
-            // Jika role ADMIN, sembunyikan SUPER ADMIN dan ADMIN lain, serta batasi hanya pada Satker yang sama
-            if ($currentUser->isActiveRole('ADMIN', $request)) {
+            // Jika role ADMIN atau OPERATOR, sembunyikan SUPER ADMIN dan ADMIN lain, serta batasi hanya pada Satker yang sama
+            if ($currentUser->isActiveRole('ADMIN', $request) || $currentUser->isActiveRole('OPERATOR', $request)) {
                 $query->whereDoesntHave('roles', function ($q) {
                     $q->whereIn('name', ['SUPER ADMIN', 'ADMIN']);
                 });
@@ -44,7 +44,7 @@ class UserController extends BaseController
                 if ($currentUser->id_satker) {
                     $query->where('id_satker', $currentUser->id_satker);
                 } else {
-                    // Jika Admin tidak punya Satker, dia tidak bisa melihat siapa-siapa (opsional, tergantung kebijakan)
+                    // Jika Admin/Operator tidak punya Satker, dia tidak bisa melihat siapa-siapa
                     $query->whereRaw('1 = 0');
                 }
             }
@@ -93,8 +93,8 @@ class UserController extends BaseController
             $currentUser = request()->user();
             $query = User::with(['satker', 'roles'])->role($role);
 
-            // Filter Satker jika ADMIN
-            if ($currentUser->isActiveRole('ADMIN', $request)) {
+            // Filter Satker jika ADMIN atau OPERATOR
+            if ($currentUser->isActiveRole('ADMIN', $request) || $currentUser->isActiveRole('OPERATOR', $request)) {
                 if ($currentUser->id_satker) {
                     $query->where('id_satker', $currentUser->id_satker);
                 } else {

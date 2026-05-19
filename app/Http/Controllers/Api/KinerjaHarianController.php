@@ -301,12 +301,36 @@ class KinerjaHarianController extends BaseController
                 return response()->json(['message' => 'Tidak terautentikasi.'], 401);
             }
 
-            // 1. Validate Query Parameters
+            // 1. Resolve target user and verify authorization
+            $targetUserId = $request->query('user_id');
+            $targetUser = $user;
+            
+            if ($targetUserId && $targetUserId != $user->id) {
+                $targetUser = \App\Models\User::findOrFail($targetUserId);
+                
+                $allowed = false;
+                if ($user->isActiveRole('SUPER ADMIN', $request)) {
+                    $allowed = true;
+                } elseif ($user->isActiveRole('OPERATOR', $request) || $user->isActiveRole('ADMIN', $request)) {
+                    $allowed = ($targetUser->id_satker == $user->id_satker);
+                } elseif ($user->isActiveRole('PIMPINAN', $request)) {
+                    $satkerDipimpin = $user->satker_dipimpin;
+                    $allowed = $satkerDipimpin && ($targetUser->id_satker == $satkerDipimpin->id);
+                }
+                
+                if (!$allowed) {
+                    return response()->json([
+                        'message' => 'Akses ditolak. Anda tidak memiliki wewenang mengekspor data pegawai ini.'
+                    ], 403);
+                }
+            }
+
+            // 2. Validate Query Parameters
             $month = $request->query('month', date('m'));
             $year = $request->query('year', date('Y'));
-            $pegawaiName = $request->query('pegawai_name', $user->nama ?: $user->name);
-            $pegawaiNip = $request->query('pegawai_nip', $user->nip);
-            $pegawaiJabatan = $request->query('pegawai_jabatan', $user->jabatan);
+            $pegawaiName = $request->query('pegawai_name', $targetUser->nama ?: $targetUser->name);
+            $pegawaiNip = $request->query('pegawai_nip', $targetUser->nip);
+            $pegawaiJabatan = $request->query('pegawai_jabatan', $targetUser->jabatan);
             
             $atasanName = $request->query('atasan_name', '');
             $atasanNip = $request->query('atasan_nip', '');
@@ -329,13 +353,13 @@ class KinerjaHarianController extends BaseController
             $enableAnchorPegawai = filter_var($request->query('enable_anchor_pegawai', false), FILTER_VALIDATE_BOOLEAN);
             $anchorPegawaiText = $request->query('anchor_pegawai_text', '$ttd_pegawai');
 
-            // 2. Fetch satker name
-            $satker = \App\Models\Satker::find($user->id_satker ?: $user->satker_id);
+            // 3. Fetch satker name
+            $satker = \App\Models\Satker::find($targetUser->id_satker ?: $targetUser->satker_id);
             $satkerName = $satker ? $satker->nama_satker : '-';
 
-            // 3. Fetch Kinerja records for this user matching selected month and year
+            // 4. Fetch Kinerja records for this user matching selected month and year
             $records = KinerjaHarian::with(['iksk.sasaran_kegiatan.perkin'])
-                ->where('id_user', $user->id)
+                ->where('id_user', $targetUser->id)
                 ->whereYear('tanggal', $year)
                 ->whereMonth('tanggal', $month)
                 ->orderBy('tanggal', 'asc')
@@ -385,6 +409,138 @@ class KinerjaHarianController extends BaseController
             return response()->json([
                 'message' => 'Gagal menghasilkan Laporan Kinerja Bulanan.',
                 'error'   => $e->getMessage(),
+                'trace'   => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export multiple employee LKB PDFs compiled inside a single ZIP file.
+     */
+    public function exportPdfZip(Request $request)
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['message' => 'Tidak terautentikasi.'], 401);
+            }
+
+            // Validate request params
+            $userIds = $request->input('user_ids');
+            if (empty($userIds) || !is_array($userIds)) {
+                return response()->json(['message' => 'Pilih setidaknya satu pegawai untuk diunduh.'], 422);
+            }
+
+            $month = $request->input('month', date('m'));
+            $year = $request->input('year', date('Y'));
+            $atasanName = $request->input('atasan_name', '');
+            $atasanNip = $request->input('atasan_nip', '');
+            $signatureDate = $request->input('signature_date', '');
+            $fontSize = $request->input('fontSize', 'small');
+            $orientation = $request->input('orientation', 'landscape');
+            
+            $showColumnsJson = $request->input('columns', '{"status":true,"perkin":true,"iksk":true,"volume":true,"uraian":true}');
+            $showColumns = is_array($showColumnsJson) ? $showColumnsJson : (json_decode($showColumnsJson, true) ?: [
+                'status' => true,
+                'perkin' => true,
+                'iksk' => true,
+                'volume' => true,
+                'uraian' => true
+            ]);
+
+            $enableAnchorAtasan = filter_var($request->input('enable_anchor_atasan', false), FILTER_VALIDATE_BOOLEAN);
+            $anchorAtasanText = $request->input('anchor_atasan_text', '$ttd_atasan');
+            $enableAnchorPegawai = filter_var($request->input('enable_anchor_pegawai', false), FILTER_VALIDATE_BOOLEAN);
+            $anchorPegawaiText = $request->input('anchor_pegawai_text', '$ttd_pegawai');
+
+            // Map month number to Indonesian name
+            $monthsIndo = [
+                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
+                '04' => 'April', '05' => 'Mei', '06' => 'Juni',
+                '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
+                '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+            ];
+            $monthName = isset($monthsIndo[$month]) ? $monthsIndo[$month] : $month;
+
+            // Create temporary file path for ZIP inside system's tmp directory
+            $tempZipFile = tempnam(sys_get_temp_dir(), 'lkb_zip_');
+            
+            $zip = new \ZipArchive();
+            if ($zip->open($tempZipFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+                return response()->json(['message' => 'Gagal membuat file ZIP di server.'], 500);
+            }
+
+            // Loop and compile each user's PDF
+            foreach ($userIds as $targetUserId) {
+                $targetUser = \App\Models\User::find($targetUserId);
+                if (!$targetUser) continue;
+
+                // Authorization check
+                $allowed = false;
+                if ($user->isActiveRole('SUPER ADMIN', $request)) {
+                    $allowed = true;
+                } elseif ($user->isActiveRole('OPERATOR', $request) || $user->isActiveRole('ADMIN', $request)) {
+                    $allowed = ($targetUser->id_satker == $user->id_satker);
+                } elseif ($user->isActiveRole('PIMPINAN', $request)) {
+                    $satkerDipimpin = $user->satker_dipimpin;
+                    $allowed = $satkerDipimpin && ($targetUser->id_satker == $satkerDipimpin->id);
+                }
+
+                if (!$allowed) continue;
+
+                $pegawaiName = $targetUser->nama ?: $targetUser->name;
+                $pegawaiNip = $targetUser->nip;
+                $pegawaiJabatan = $targetUser->jabatan;
+
+                $satker = \App\Models\Satker::find($targetUser->id_satker ?: $targetUser->satker_id);
+                $satkerName = $satker ? $satker->nama_satker : '-';
+
+                $records = KinerjaHarian::with(['iksk.sasaran_kegiatan.perkin'])
+                    ->where('id_user', $targetUser->id)
+                    ->whereYear('tanggal', $year)
+                    ->whereMonth('tanggal', $month)
+                    ->orderBy('tanggal', 'asc')
+                    ->get();
+
+                $data = [
+                    'monthName' => $monthName,
+                    'year' => $year,
+                    'pegawaiName' => $pegawaiName,
+                    'pegawaiNip' => $pegawaiNip,
+                    'pegawaiJabatan' => $pegawaiJabatan,
+                    'satkerName' => $satkerName,
+                    'atasanName' => $atasanName,
+                    'atasanNip' => $atasanNip,
+                    'signatureDate' => $signatureDate,
+                    'fontSize' => $fontSize,
+                    'orientation' => $orientation,
+                    'showColumns' => $showColumns,
+                    'records' => $records,
+                    'enableAnchorAtasan' => $enableAnchorAtasan,
+                    'anchorAtasanText' => $anchorAtasanText,
+                    'enableAnchorPegawai' => $enableAnchorPegawai,
+                    'anchorPegawaiText' => $anchorPegawaiText
+                ];
+
+                // Render PDF
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.lkb_pdf', $data);
+                $pdf->setPaper('a4', $orientation);
+                
+                // Add PDF binary content directly to the ZIP
+                $fileSafeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $pegawaiName);
+                $zip->addFromString("LKB_{$month}_{$year}_{$fileSafeName}.pdf", $pdf->output());
+            }
+
+            $zip->close();
+
+            // Stream file download and delete temp file afterward
+            return response()->download($tempZipFile, "LKB_Massal_{$monthName}_{$year}.zip")->deleteFileAfterSend(true);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat mengekspor ZIP.',
+                'error'   => $e->getMessage(),
+                'trace'   => $e->getTraceAsString()
             ], 500);
         }
     }
