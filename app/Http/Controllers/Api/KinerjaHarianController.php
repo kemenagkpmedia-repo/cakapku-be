@@ -31,8 +31,19 @@ class KinerjaHarianController extends BaseController
                 return response()->json(['message' => 'Tidak terautentikasi.'], 401);
             }
 
-            // Pimpinan can see all or specific user? Default implementation is seeing own.
-            return response()->json(KinerjaHarian::with('iksk')->where('id_user', $user->id)->get());
+            $month = $request->query('month');
+            $year = $request->query('year');
+
+            $query = KinerjaHarian::with('iksk')->where('id_user', $user->id);
+
+            if ($month) {
+                $query->whereMonth('tanggal', $month);
+            }
+            if ($year) {
+                $query->whereYear('tanggal', $year);
+            }
+
+            return response()->json($query->get());
 
         } catch (Exception $e) {
             return response()->json([
@@ -222,8 +233,19 @@ class KinerjaHarianController extends BaseController
                 return response()->json(['message' => 'Tidak terautentikasi.'], 401);
             }
 
+            $month = $request->query('month');
+            $year = $request->query('year');
+
             $query = User::where('id', '!=', $pimpinan->id)
-                ->with(['kinerja_harians.iksk.sasaran_kegiatan.perkin'])
+                ->with(['kinerja_harians' => function ($q) use ($month, $year) {
+                    if ($month) {
+                        $q->whereMonth('tanggal', $month);
+                    }
+                    if ($year) {
+                        $q->whereYear('tanggal', $year);
+                    }
+                    $q->with('iksk.sasaran_kegiatan.perkin');
+                }])
                 ->orderBy('nama', 'asc');
 
             if (!$pimpinan->isActiveRole('SUPER ADMIN', $request)) {
