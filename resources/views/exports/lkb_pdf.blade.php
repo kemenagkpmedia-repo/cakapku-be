@@ -5,12 +5,12 @@
     <title>LKB_{{ $monthName }}_{{ $year }}</title>
     <style>
         @page {
-            size: A4 {{ $orientation }};
+            size: A4 {{ $orientation ?? 'landscape' }};
             margin: 12mm 10mm;
         }
         body {
             font-family: Helvetica, Arial, sans-serif;
-            font-size: {{ $fontSize == 'small' ? '8.5pt' : ($fontSize == 'medium' ? '10pt' : '11.5pt') }};
+            font-size: {{ ($fontSize ?? 'medium') == 'small' ? '8.5pt' : (($fontSize ?? 'medium') == 'medium' ? '10pt' : '11.5pt') }};
             color: #1e293b;
             line-height: 1.4;
             background: #ffffff;
@@ -87,7 +87,7 @@
             color: #0f172a;
             font-weight: bold;
             text-transform: uppercase;
-            font-size: {{ $fontSize == 'small' ? '7.5pt' : ($fontSize == 'medium' ? '8.5pt' : '9.5pt') }};
+            font-size: {{ ($fontSize ?? 'medium') == 'small' ? '7.5pt' : (($fontSize ?? 'medium') == 'medium' ? '8.5pt' : '9.5pt') }};
             padding: 8px 6px;
             border: 1px solid #cbd5e1;
             text-align: center;
@@ -95,7 +95,7 @@
         .main-table td {
             padding: 8px 8px;
             border: 1px solid #cbd5e1;
-            font-size: {{ $fontSize == 'small' ? '8pt' : ($fontSize == 'medium' ? '9pt' : '10pt') }};
+            font-size: {{ ($fontSize ?? 'medium') == 'small' ? '8pt' : (($fontSize ?? 'medium') == 'medium' ? '9pt' : '10pt') }};
             vertical-align: top;
             color: #334155;
         }
@@ -194,20 +194,20 @@
             <tr>
                 <th style="width: 35px;">No</th>
                 <th style="width: 80px;">Tanggal</th>
-                @if(isset($showColumns['status']) && $showColumns['status'])
+                @if(!isset($showColumns['status']) || $showColumns['status'])
                     <th style="width: 75px;">Status</th>
                 @endif
-                @if(isset($showColumns['perkin']) && $showColumns['perkin'])
+                @if(!isset($showColumns['perkin']) || $showColumns['perkin'])
                     <th style="width: 140px;">SK / Perkin</th>
                 @endif
-                @if(isset($showColumns['iksk']) && $showColumns['iksk'])
+                @if(!isset($showColumns['iksk']) || $showColumns['iksk'])
                     <th style="width: 150px;">Indikator Kinerja</th>
                 @endif
-                @if(isset($showColumns['volume']) && $showColumns['volume'])
+                @if(!isset($showColumns['volume']) || $showColumns['volume'])
                     <th style="width: 40px;">Vol</th>
                 @endif
                 <th style="width: 60px;">Satuan</th>
-                @if(isset($showColumns['uraian']) && $showColumns['uraian'])
+                @if(!isset($showColumns['uraian']) || $showColumns['uraian'])
                     <th>Uraian Kegiatan</th>
                 @endif
             </tr>
@@ -219,20 +219,20 @@
                     <td class="text-center font-semibold">
                         {{ date('d-m-Y', strtotime($record->tanggal)) }}
                     </td>
-                    @if(isset($showColumns['status']) && $showColumns['status'])
+                    @if(!isset($showColumns['status']) || $showColumns['status'])
                         <td class="text-center">{{ $record->status_kehadiran }}</td>
                     @endif
-                    @if(isset($showColumns['perkin']) && $showColumns['perkin'])
+                    @if(!isset($showColumns['perkin']) || $showColumns['perkin'])
                         <td style="font-weight: 500;">
                             {{ $record->iksk && $record->iksk->sasaran_kegiatan && $record->iksk->sasaran_kegiatan->perkin ? $record->iksk->sasaran_kegiatan->perkin->label_perkin : '-' }}
                         </td>
                     @endif
-                    @if(isset($showColumns['iksk']) && $showColumns['iksk'])
+                    @if(!isset($showColumns['iksk']) || $showColumns['iksk'])
                         <td>
                             {{ $record->iksk ? $record->iksk->indikator : '-' }}
                         </td>
                     @endif
-                    @if(isset($showColumns['volume']) && $showColumns['volume'])
+                    @if(!isset($showColumns['volume']) || $showColumns['volume'])
                         <td class="text-center font-semibold" style="color: #0f172a;">
                             {{ $record->iksk && $record->iksk->sasaran_kegiatan ? $record->iksk->sasaran_kegiatan->target_vol : '-' }}
                         </td>
@@ -240,7 +240,7 @@
                     <td class="text-center">
                         {{ $record->iksk && $record->iksk->sasaran_kegiatan ? $record->iksk->sasaran_kegiatan->target_satuan : '-' }}
                     </td>
-                    @if(isset($showColumns['uraian']) && $showColumns['uraian'])
+                    @if(!isset($showColumns['uraian']) || $showColumns['uraian'])
                         <td>1. {{ $record->uraian_pekerjaan }}</td>
                     @endif
                 </tr>

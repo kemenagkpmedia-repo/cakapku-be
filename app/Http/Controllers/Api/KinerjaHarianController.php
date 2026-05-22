@@ -335,7 +335,7 @@ class KinerjaHarianController extends BaseController
             $atasanName = $request->query('atasan_name', '');
             $atasanNip = $request->query('atasan_nip', '');
             $signatureDate = $request->query('signature_date', '');
-            $fontSize = $request->query('fontSize', 'small');
+            $fontSize = $request->query('fontSize', 'medium');
             $orientation = $request->query('orientation', 'landscape');
             
             // Decode toggled columns (passed as JSON string or arrays)
@@ -436,7 +436,7 @@ class KinerjaHarianController extends BaseController
             $atasanName = $request->input('atasan_name', '');
             $atasanNip = $request->input('atasan_nip', '');
             $signatureDate = $request->input('signature_date', '');
-            $fontSize = $request->input('fontSize', 'small');
+            $fontSize = $request->input('fontSize', 'medium');
             $orientation = $request->input('orientation', 'landscape');
             
             $showColumnsJson = $request->input('columns', '{"status":true,"perkin":true,"iksk":true,"volume":true,"uraian":true}');

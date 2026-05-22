@@ -65,6 +65,72 @@
                 }
             }
         },
+        "/api/me": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Get current user info",
+                "operationId": "8367feff40ba10e43187792cad3132c1",
+                "responses": {
+                    "200": {
+                        "description": "User info with config"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/switch-role": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Switch active role and get new config",
+                "operationId": "d2e41090cfedd2e62f37c43cb532fc38",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "role"
+                                ],
+                                "properties": {
+                                    "role": {
+                                        "type": "string",
+                                        "example": "ADMIN"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "New config returned"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/logout": {
             "post": {
                 "tags": [
@@ -151,11 +217,11 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "id_perkin",
+                                    "id_sasaran_kegiatan",
                                     "indikator"
                                 ],
                                 "properties": {
-                                    "id_perkin": {
+                                    "id_sasaran_kegiatan": {
                                         "type": "integer"
                                     },
                                     "indikator": {
@@ -449,6 +515,137 @@
                     },
                     "404": {
                         "description": "Not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/kinerja-harian/bawahan": {
+            "get": {
+                "tags": [
+                    "Kinerja Harian"
+                ],
+                "summary": "Get list of Kinerja Harian from subordinates",
+                "operationId": "083019f507e558bfe48a29c6375db927",
+                "responses": {
+                    "200": {
+                        "description": "List of Kinerja Harian"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/kinerja-harian/export-pdf": {
+            "get": {
+                "tags": [
+                    "Kinerja Harian"
+                ],
+                "summary": "Export Kinerja Harian to A4 PDF",
+                "operationId": "efe328b1fe4a25dca5b94df8d93fd235",
+                "parameters": [
+                    {
+                        "name": "month",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "year",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "pegawai_name",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "pegawai_nip",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "pegawai_jabatan",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "atasan_name",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "atasan_nip",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "signature_date",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "fontSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "orientation",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "columns",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Streamed PDF file attachment"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
                     },
                     "500": {
                         "description": "Server error"
