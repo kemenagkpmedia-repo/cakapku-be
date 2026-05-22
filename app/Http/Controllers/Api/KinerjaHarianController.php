@@ -349,9 +349,9 @@ class KinerjaHarianController extends BaseController
             ];
 
             $enableAnchorAtasan = filter_var($request->query('enable_anchor_atasan', false), FILTER_VALIDATE_BOOLEAN);
-            $anchorAtasanText = $request->query('anchor_atasan_text', '$ttd_atasan');
+            $anchorAtasanText = $request->query('anchor_atasan_text', '${ttd_pengirim}');
             $enableAnchorPegawai = filter_var($request->query('enable_anchor_pegawai', false), FILTER_VALIDATE_BOOLEAN);
-            $anchorPegawaiText = $request->query('anchor_pegawai_text', '$ttd_pegawai');
+            $anchorPegawaiText = $request->query('anchor_pegawai_text', '${ttd_pengirim}');
 
             // 3. Fetch satker name
             $satker = \App\Models\Satker::find($targetUser->id_satker ?: $targetUser->satker_id);

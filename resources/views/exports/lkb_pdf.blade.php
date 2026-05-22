@@ -261,7 +261,7 @@
             <p>Atasan Langsung</p>
             <div class="signature-space">
                 @if(isset($enableAnchorAtasan) && $enableAnchorAtasan)
-                    <div style="font-size: 8.5pt; color: #0f172a; font-weight: normal; padding-top: 25px; text-align: center; font-family: Courier, monospace;">
+                    <div style="font-size: 8.5pt; color: #0f172a; font-weight: normal; padding-top: 35px; text-align: center; font-family: Courier, monospace;">
                         {{ $anchorAtasanText }}
                     </div>
                 @endif
@@ -274,7 +274,7 @@
             <p>{{ $pegawaiJabatan ?: 'Pegawai Negeri Sipil' }},</p>
             <div class="signature-space">
                 @if(isset($enableAnchorPegawai) && $enableAnchorPegawai)
-                    <div style="font-size: 8.5pt; color: #0f172a; font-weight: normal; padding-top: 25px; text-align: center; font-family: Courier, monospace;">
+                    <div style="font-size: 8.5pt; color: #0f172a; font-weight: normal; padding-top: 35px; text-align: center; font-family: Courier, monospace;">
                         {{ $anchorPegawaiText }}
                     </div>
                 @endif
