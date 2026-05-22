@@ -37,9 +37,9 @@ class UserController extends BaseController
 
             // Jika role ADMIN atau OPERATOR, sembunyikan SUPER ADMIN dan ADMIN lain, serta batasi hanya pada Satker yang sama
             if ($currentUser->isActiveRole('ADMIN', $request) || $currentUser->isActiveRole('OPERATOR', $request)) {
-                $query->whereDoesntHave('roles', function ($q) {
-                    $q->whereIn('name', ['SUPER ADMIN', 'ADMIN']);
-                });
+                // $query->whereDoesntHave('roles', function ($q) {
+                //     $q->whereIn('name', ['SUPER ADMIN', 'ADMIN']);
+                // });
 
                 if ($currentUser->id_satker) {
                     $query->where('id_satker', $currentUser->id_satker);
