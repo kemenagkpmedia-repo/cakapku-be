@@ -234,11 +234,11 @@
                     @endif
                     @if(!isset($showColumns['volume']) || $showColumns['volume'])
                         <td class="text-center font-semibold" style="color: #0f172a;">
-                            {{ $record->iksk && $record->iksk->sasaran_kegiatan ? $record->iksk->sasaran_kegiatan->target_vol : '-' }}
+                            {{ $record->iksk ? $record->iksk->target_vol : '-' }}
                         </td>
                     @endif
                     <td class="text-center">
-                        {{ $record->iksk && $record->iksk->sasaran_kegiatan ? $record->iksk->sasaran_kegiatan->target_satuan : '-' }}
+                        {{ $record->iksk ? $record->iksk->target_satuan : '-' }}
                     </td>
                     @if(!isset($showColumns['uraian']) || $showColumns['uraian'])
                         <td>1. {{ $record->uraian_pekerjaan }}</td>

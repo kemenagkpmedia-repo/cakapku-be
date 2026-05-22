@@ -34,7 +34,7 @@ class KinerjaHarianController extends BaseController
             $month = $request->query('month');
             $year = $request->query('year');
 
-            $query = KinerjaHarian::with('iksk')->where('id_user', $user->id);
+            $query = KinerjaHarian::with('iksk.sasaran_kegiatan.perkin')->where('id_user', $user->id);
 
             if ($month) {
                 $query->whereMonth('tanggal', $month);
