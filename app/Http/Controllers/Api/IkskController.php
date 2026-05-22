@@ -25,7 +25,7 @@ class IkskController extends BaseController
     {
         try {
             $user = $request->user();
-            $query = Iksk::with('sasaran_kegiatan.perkin');
+            $query = Iksk::with(['sasaran_kegiatan','sasaran_kegiatan.perkin']);
 
             // Filter Perkin yang aktif dan Periode yang aktif melalui Sasaran Kegiatan
             $query->whereHas('sasaran_kegiatan.perkin', function($q) {
@@ -40,6 +40,11 @@ class IkskController extends BaseController
                 $query->whereHas('sasaran_kegiatan.perkin.satkers', function ($q) use ($user) {
                     $q->where('satkers.id', $user->id_satker);
                 });
+            }
+
+            $idSasaranKegiatan = $request->query('id_sasaran_kegiatan') ?? $request->query('sasaran_kegiatan_id');
+            if ($idSasaranKegiatan) {
+                $query->where('id_sasaran_kegiatan', $idSasaranKegiatan);
             }
 
             return response()->json($query->get());

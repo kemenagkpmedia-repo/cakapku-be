@@ -29,6 +29,11 @@ class SasaranKegiatanController extends BaseController
                 });
             }
 
+            $idPerkin = $request->query('id_perkin') ?? $request->query('perkin_id');
+            if ($idPerkin) {
+                $query->where('id_perkin', $idPerkin);
+            }
+
             return response()->json($query->get());
         } catch (Exception $e) {
             return response()->json(['message' => 'Gagal mengambil data Sasaran Kegiatan.', 'error' => $e->getMessage()], 500);
