@@ -255,6 +255,7 @@ class PerkinController extends BaseController
      *             mediaType="multipart/form-data",
      *             @OA\Schema(
      *                 @OA\Property(property="id_periode", type="integer", description="ID of the associated Period"),
+     *                 @OA\Property(property="nama_perkin", type="string", description="Name of the Perkin to be created"),
      *                 @OA\Property(property="file", type="string", format="binary", description="Excel File (.xlsx, .csv)")
      *             )
      *         )
@@ -268,13 +269,16 @@ class PerkinController extends BaseController
     {
         try {
             $request->validate([
-                'id_periode' => 'required|integer|exists:periodes,id',
-                'file'       => 'required|mimes:xlsx,xls,csv|max:10240',
+                'id_periode'  => 'required|integer|exists:periodes,id',
+                'nama_perkin' => 'required_without:namaPerkin|string|max:255',
+                'namaPerkin'  => 'required_without:nama_perkin|string|max:255',
+                'file'        => 'required|mimes:xlsx,xls,csv|max:10240',
             ]);
 
             $userId = $request->user()->id ?? null;
+            $namaPerkin = $request->input('nama_perkin') ?? $request->input('namaPerkin');
 
-            Excel::import(new PerkinImport($request->id_periode, $userId), $request->file('file'));
+            Excel::import(new PerkinImport($request->id_periode, $userId, $namaPerkin), $request->file('file'));
 
             return response()->json(['message' => 'Perkin & IKSK berhasil diimport.']);
 

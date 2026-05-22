@@ -13,13 +13,15 @@ class PerkinImport implements ToCollection, WithStartRow
 {
     private $periodeId;
     private $userId;
+    private $namaPerkin;
     private $perkinId = null;
     private $currentSasaranId = null;
 
-    public function __construct($periodeId, $userId)
+    public function __construct($periodeId, $userId, $namaPerkin = null)
     {
         $this->periodeId = $periodeId;
         $this->userId = $userId;
+        $this->namaPerkin = $namaPerkin;
     }
 
     public function startRow(): int
@@ -47,7 +49,7 @@ class PerkinImport implements ToCollection, WithStartRow
             // or just a generic name. For better UX, let's use a generic name with date.
             if ($this->perkinId === null && (!empty($sasaranKegiatanText) || !empty($indikatorKinerja))) {
                 $perkin = Perkin::create([
-                    'nama_perkin' => 'Perjanjian Kinerja ' . date('Y-m-d H:i'),
+                    'nama_perkin' => $this->namaPerkin ?: ('Perjanjian Kinerja ' . date('Y-m-d H:i')),
                     'id_periode'  => $this->periodeId,
                     'status'      => true,
                     'created_by'  => $this->userId,
