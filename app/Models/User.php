@@ -177,9 +177,8 @@ class User extends Authenticatable
                 break;
 
             case 'OPERATOR':
-                $config['dashboard_path'] = '/operator/periode';
+                $config['dashboard_path'] = '/operator/perkin-satker';
                 $config['menus'] = [
-                    ['to' => '/operator/periode', 'icon' => 'Calendar', 'label' => 'Manajemen Periode'],
                     [
                         'label' => 'Perjanjian Kinerja',
                         'icon' => 'FileText',

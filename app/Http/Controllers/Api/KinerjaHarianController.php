@@ -249,14 +249,26 @@ class KinerjaHarianController extends BaseController
                 ->orderBy('nama', 'asc');
 
             if (!$pimpinan->isActiveRole('SUPER ADMIN', $request)) {
-                // Pimpinan sees users in the satker they lead
+                // Pimpinan sees users in the satker they lead and all descendant satkers
                 $satker = $pimpinan->satker_dipimpin;
                 if (!$satker) {
                     return response()->json([
                         'message' => 'Akses ditolak. Anda bukan pimpinan satker manapun.',
                     ], 403);
                 }
-                $query->where('id_satker', $satker->id);
+
+                // Helper to get descendant IDs
+                $getDescendantIds = function ($parentId) use (&$getDescendantIds) {
+                    $ids = [$parentId];
+                    $children = \App\Models\Satker::where('parent_id', $parentId)->pluck('id')->toArray();
+                    foreach ($children as $childId) {
+                        $ids = array_merge($ids, $getDescendantIds($childId));
+                    }
+                    return $ids;
+                };
+
+                $allowedSatkerIds = $getDescendantIds($satker->id);
+                $query->whereIn('id_satker', $allowedSatkerIds);
             }
 
             $users = $query->get();
@@ -305,7 +317,7 @@ class KinerjaHarianController extends BaseController
             $targetUserId = $request->query('user_id');
             $targetUser = $user;
             
-            if ($targetUserId && $targetUserId != $user->id) {
+             if ($targetUserId && $targetUserId != $user->id) {
                 $targetUser = \App\Models\User::findOrFail($targetUserId);
                 
                 $allowed = false;
@@ -315,7 +327,19 @@ class KinerjaHarianController extends BaseController
                     $allowed = ($targetUser->id_satker == $user->id_satker);
                 } elseif ($user->isActiveRole('PIMPINAN', $request)) {
                     $satkerDipimpin = $user->satker_dipimpin;
-                    $allowed = $satkerDipimpin && ($targetUser->id_satker == $satkerDipimpin->id);
+                    if ($satkerDipimpin) {
+                        // Check if targetUser's satker is same or descendant of satkerDipimpin
+                        $getDescendantIds = function ($parentId) use (&$getDescendantIds) {
+                            $ids = [$parentId];
+                            $children = \App\Models\Satker::where('parent_id', $parentId)->pluck('id')->toArray();
+                            foreach ($children as $childId) {
+                                $ids = array_merge($ids, $getDescendantIds($childId));
+                            }
+                            return $ids;
+                        };
+                        $allowedSatkerIds = $getDescendantIds($satkerDipimpin->id);
+                        $allowed = in_array($targetUser->id_satker, $allowedSatkerIds);
+                    }
                 }
                 
                 if (!$allowed) {
@@ -332,8 +356,10 @@ class KinerjaHarianController extends BaseController
             $pegawaiNip = $request->query('pegawai_nip', $targetUser->nip);
             $pegawaiJabatan = $request->query('pegawai_jabatan', $targetUser->jabatan);
             
-            $atasanName = $request->query('atasan_name', '');
-            $atasanNip = $request->query('atasan_nip', '');
+            // Resolve dynamic atasan if not explicitly sent in the query parameters
+            $dynamicAtasan = $targetUser->atasan_user;
+            $atasanName = $request->query('atasan_name', $dynamicAtasan ? $dynamicAtasan->nama : '');
+            $atasanNip = $request->query('atasan_nip', $dynamicAtasan ? $dynamicAtasan->nip : '');
             $signatureDate = $request->query('signature_date', '');
             $fontSize = $request->query('fontSize', 'medium');
             $orientation = $request->query('orientation', 'landscape');
@@ -483,7 +509,18 @@ class KinerjaHarianController extends BaseController
                     $allowed = ($targetUser->id_satker == $user->id_satker);
                 } elseif ($user->isActiveRole('PIMPINAN', $request)) {
                     $satkerDipimpin = $user->satker_dipimpin;
-                    $allowed = $satkerDipimpin && ($targetUser->id_satker == $satkerDipimpin->id);
+                    if ($satkerDipimpin) {
+                        $getDescendantIds = function ($parentId) use (&$getDescendantIds) {
+                            $ids = [$parentId];
+                            $children = \App\Models\Satker::where('parent_id', $parentId)->pluck('id')->toArray();
+                            foreach ($children as $childId) {
+                                $ids = array_merge($ids, $getDescendantIds($childId));
+                            }
+                            return $ids;
+                        };
+                        $allowedSatkerIds = $getDescendantIds($satkerDipimpin->id);
+                        $allowed = in_array($targetUser->id_satker, $allowedSatkerIds);
+                    }
                 }
 
                 if (!$allowed) continue;
@@ -491,6 +528,11 @@ class KinerjaHarianController extends BaseController
                 $pegawaiName = $targetUser->nama ?: $targetUser->name;
                 $pegawaiNip = $targetUser->nip;
                 $pegawaiJabatan = $targetUser->jabatan;
+
+                // Resolve dynamic atasan for this user if not explicitly sent in request
+                $dynamicAtasan = $targetUser->atasan_user;
+                $userAtasanName = $atasanName ?: ($dynamicAtasan ? $dynamicAtasan->nama : '');
+                $userAtasanNip = $atasanNip ?: ($dynamicAtasan ? $dynamicAtasan->nip : '');
 
                 $satker = \App\Models\Satker::find($targetUser->id_satker ?: $targetUser->satker_id);
                 $satkerName = $satker ? $satker->nama_satker : '-';
@@ -509,8 +551,8 @@ class KinerjaHarianController extends BaseController
                     'pegawaiNip' => $pegawaiNip,
                     'pegawaiJabatan' => $pegawaiJabatan,
                     'satkerName' => $satkerName,
-                    'atasanName' => $atasanName,
-                    'atasanNip' => $atasanNip,
+                    'atasanName' => $userAtasanName,
+                    'atasanNip' => $userAtasanNip,
                     'signatureDate' => $signatureDate,
                     'fontSize' => $fontSize,
                     'orientation' => $orientation,

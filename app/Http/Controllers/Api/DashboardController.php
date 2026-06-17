@@ -33,14 +33,27 @@ class DashboardController extends BaseController
             $query = User::with(['kinerja_harians.iksk']);
 
             if (!$pimpinan->isActiveRole('SUPER ADMIN', $request)) {
-                // Pimpinan sees users in the satker they lead
+                // Pimpinan sees users in the satker they lead and all descendant satkers
                 $satker = $pimpinan->satker_dipimpin;
                 if (!$satker) {
                     return response()->json([
                         'message' => 'Akses ditolak. Anda bukan pimpinan satker manapun.',
                     ], 403);
                 }
-                $query->where('id_satker', $satker->id);
+
+                // Helper to get descendant IDs
+                $getDescendantIds = function ($parentId) use (&$getDescendantIds) {
+                    $ids = [$parentId];
+                    $children = \App\Models\Satker::where('parent_id', $parentId)->pluck('id')->toArray();
+                    foreach ($children as $childId) {
+                        $ids = array_merge($ids, $getDescendantIds($childId));
+                    }
+                    return $ids;
+                };
+
+                $allowedSatkerIds = $getDescendantIds($satker->id);
+                $query->whereIn('id_satker', $allowedSatkerIds)
+                      ->where('id', '!=', $pimpinan->id);
             }
 
             $bawahan = $query->get();
