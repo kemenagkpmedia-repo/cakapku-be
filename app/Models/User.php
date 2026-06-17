@@ -23,6 +23,11 @@ class User extends Authenticatable
         'password',
     ];
 
+    protected $appends = [
+        'sub_unit',
+        'atasan_user',
+    ];
+
     protected $hidden = [
         'password',
         'remember_token',
@@ -36,6 +41,35 @@ class User extends Authenticatable
     public function satker()
     {
         return $this->belongsTo(Satker::class, 'id_satker');
+    }
+
+    public function getSubUnitAttribute()
+    {
+        return $this->satker ? $this->satker->nama_satker : null;
+    }
+
+    public function getAtasanUserAttribute()
+    {
+        $satker = $this->satker;
+        if (!$satker) {
+            return null;
+        }
+
+        // Jika user saat ini bukan pimpinan satker tersebut, atasannya adalah pimpinan satker tersebut
+        if ($satker->id_pimpinan && $satker->id_pimpinan != $this->id) {
+            return User::find($satker->id_pimpinan);
+        }
+
+        // Jika user saat ini adalah pimpinan satker tersebut, atasannya adalah pimpinan dari parent satker
+        $parent = $satker->parent;
+        while ($parent) {
+            if ($parent->id_pimpinan) {
+                return User::find($parent->id_pimpinan);
+            }
+            $parent = $parent->parent;
+        }
+
+        return null;
     }
 
     public function kinerja_harians()

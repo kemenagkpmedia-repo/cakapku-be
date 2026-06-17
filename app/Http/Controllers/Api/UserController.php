@@ -156,7 +156,6 @@ class UserController extends BaseController
                 'jabatan' => 'nullable|string',
                 'gol_ruang' => 'nullable|string',
                 'roles' => 'nullable|array',
-                'role' => 'nullable|string',
             ]);
 
             $roles = $data['roles'] ?? ($data['role'] ?? ['USER']);

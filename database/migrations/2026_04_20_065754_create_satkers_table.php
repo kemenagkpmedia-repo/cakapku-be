@@ -15,7 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('nama_satker', 255);
             $table->unsignedBigInteger('id_pimpinan')->nullable();
+            $table->unsignedBigInteger('parent_id')->nullable();
+            $table->integer('level')->default(0);
             $table->timestamps();
+
+            $table->foreign('parent_id')->references('id')->on('satkers')->onDelete('set null');
         });
     }
 

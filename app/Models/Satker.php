@@ -12,7 +12,19 @@ class Satker extends Model
     protected $fillable = [
         'nama_satker',
         'id_pimpinan',
+        'parent_id',
+        'level',
     ];
+
+    public function parent()
+    {
+        return $this->belongsTo(Satker::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(Satker::class, 'parent_id');
+    }
 
     public function users()
     {

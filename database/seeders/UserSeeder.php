@@ -7,7 +7,6 @@ use App\Models\Satker;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
-use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -29,6 +28,14 @@ class UserSeeder extends Seeder
             Role::firstOrCreate(['name' => $roleName]);
         }
 
+        // Retrieve Satkers
+        $kemenag = Satker::where('nama_satker', 'Kantor Kemenag')->first();
+        $subbagTuSatker = Satker::where('nama_satker', 'Subbag TU')->first();
+        $seksiPenmadSatker = Satker::where('nama_satker', 'Seksi Pendidikan Madrasah')->first();
+        $seksiBimasSatker = Satker::where('nama_satker', 'Seksi Bimas Islam')->first();
+        $madrasah = Satker::where('nama_satker', 'MAN 1')->first();
+        $kua = Satker::where('nama_satker', 'KUA Kecamatan A')->first();
+
         // 2. Global Super Admin
         $superAdmin = User::create([
             'nama' => 'Master Super Admin',
@@ -38,60 +45,151 @@ class UserSeeder extends Seeder
         ]);
         $superAdmin->assignRole('SUPER ADMIN');
 
-        // 3. Loop Satkers and create role-based users for each
-        $satkers = Satker::all();
+        // ==========================================
+        // 3. KANTOR KEMENAG (Top Level & Seksi)
+        // ==========================================
 
-        foreach ($satkers as $satker) {
-            $slug = Str::slug($satker->nama_satker, '_');
+        // Kepala Kantor (Top Level Atasan)
+        $kepalaKantor = User::create([
+            'id_satker' => $kemenag->id,
+            'nama' => 'Drs. H. Ahmad Sahal, M.Pd.I',
+            'nip' => '197501012000031001',
+            'username' => 'kakan',
+            'email' => 'kakan@cakapku.test',
+            'password' => Hash::make('password123'),
+            'jabatan' => 'Kepala Kantor Kemenag',
+            'gol_ruang' => 'IV/a',
+        ]);
+        $kepalaKantor->assignRole('PIMPINAN');
+        $kemenag->update(['id_pimpinan' => $kepalaKantor->id]);
 
-            // Create ADMIN for this Satker
-            $admin = User::create([
-                'id_satker' => $satker->id,
-                'nama' => "Admin " . $satker->nama_satker,
-                'username' => "admin_" . $slug,
-                'email' => "admin." . str_replace('_', '.', $slug) . "@cakapku.test",
-                'password' => Hash::make('password123'),
-            ]);
-            $admin->assignRole('ADMIN');
+        // Operator Kantor Kemenag (di Subbag TU)
+        $operatorKemenag = User::create([
+            'id_satker' => $subbagTuSatker->id,
+            'nama' => 'Operator Kemenag',
+            'username' => 'operator_kemenag',
+            'email' => 'operator.kemenag@cakapku.test',
+            'password' => Hash::make('password123'),
+            'jabatan' => 'Pranata Komputer / Operator Satker',
+        ]);
+        $operatorKemenag->assignRole('OPERATOR');
+        $subbagTuSatker->update(['id_pimpinan' => $operatorKemenag->id]);
 
-            // Create PIMPINAN for this Satker
-            $pimpinan = User::create([
-                'id_satker' => $satker->id,
-                'nama' => "Pimpinan " . $satker->nama_satker,
-                'username' => "pimpinan_" . $slug,
-                'nip' => '198' . rand(0, 9) . '0101201001' . rand(1000, 9999),
-                'email' => "pimpinan." . str_replace('_', '.', $slug) . "@cakapku.test",
-                'password' => Hash::make('password123'),
-                'jabatan' => 'Kepala ' . $satker->nama_satker,
-            ]);
-            $pimpinan->assignRole('PIMPINAN');
+        // Kepala Seksi Penmad
+        $kasiPenmad = User::create([
+            'id_satker' => $seksiPenmadSatker->id,
+            'nama' => 'H. Muh. Ridwan, S.Ag',
+            'nip' => '198002022005011002',
+            'username' => 'kasi_penmad',
+            'email' => 'kasi.penmad@cakapku.test',
+            'password' => Hash::make('password123'),
+            'jabatan' => 'Kepala Seksi Pendidikan Madrasah',
+            'gol_ruang' => 'III/d',
+        ]);
+        $kasiPenmad->assignRole('PIMPINAN');
+        $seksiPenmadSatker->update(['id_pimpinan' => $kasiPenmad->id]);
 
-            // Link Satker to this Pimpinan
-            $satker->update(['id_pimpinan' => $pimpinan->id]);
+        // Staf Seksi Penmad
+        $stafPenmad = User::create([
+            'id_satker' => $seksiPenmadSatker->id,
+            'nama' => 'Rina Wijayanti, A.Md',
+            'nip' => '199006062015032001',
+            'username' => 'staf_penmad',
+            'email' => 'staf.penmad@cakapku.test',
+            'password' => Hash::make('password123'),
+            'jabatan' => 'Staf Pelaksana Seksi Penmad',
+            'gol_ruang' => 'II/c',
+        ]);
+        $stafPenmad->assignRole('USER');
 
-            // Create OPERATOR for this Satker
-            $operator = User::create([
-                'id_satker' => $satker->id,
-                'nama' => "Operator " . $satker->nama_satker,
-                'username' => "operator_" . $slug,
-                'email' => "operator." . str_replace('_', '.', $slug) . "@cakapku.test",
-                'password' => Hash::make('password123'),
-            ]);
-            $operator->assignRole('OPERATOR');
 
-            // Create 2 USERS for this Satker
-            for ($i = 1; $i <= 2; $i++) {
-                $user = User::create([
-                    'id_satker' => $satker->id,
-                    'nama' => "Pegawai $i " . $satker->nama_satker,
-                    'username' => "user{$i}_" . $slug,
-                    'nip' => '199' . rand(0, 9) . '0101202001' . rand(1000, 9999),
-                    'email' => "user{$i}." . str_replace('_', '.', $slug) . "@cakapku.test",
-                    'password' => Hash::make('password123'),
-                    'jabatan' => 'Staf Pelaksana ' . $i,
-                ]);
-                $user->assignRole('USER');
-            }
-        }
+        // ==========================================
+        // 4. MADRASAH (MAN 1)
+        // ==========================================
+
+        // Kepala Madrasah
+        $kepalaMadrasah = User::create([
+            'id_satker' => $madrasah->id,
+            'nama' => 'Dr. Hj. Siti Aminah, M.Pd',
+            'nip' => '197803032003122001',
+            'username' => 'kamad',
+            'email' => 'kamad@cakapku.test',
+            'password' => Hash::make('password123'),
+            'jabatan' => 'Kepala MAN 1',
+            'gol_ruang' => 'IV/a',
+        ]);
+        $kepalaMadrasah->assignRole('PIMPINAN');
+        $madrasah->update(['id_pimpinan' => $kepalaMadrasah->id]);
+
+        // Kepala TU Madrasah
+        $kepalaTuMadrasah = User::create([
+            'id_satker' => $madrasah->id,
+            'nama' => 'Budi Santoso, S.Sos',
+            'nip' => '198505052010011004',
+            'username' => 'ka_tu_madrasah',
+            'email' => 'ka.tu.madrasah@cakapku.test',
+            'password' => Hash::make('password123'),
+            'jabatan' => 'Kepala TU MAN 1',
+            'gol_ruang' => 'III/b',
+        ]);
+        $kepalaTuMadrasah->assignRole('PIMPINAN');
+
+        // Guru Madrasah
+        $guruMadrasah = User::create([
+            'id_satker' => $madrasah->id,
+            'nama' => 'Sri Wahyuni, S.Pd',
+            'nip' => '198308082009012002',
+            'username' => 'guru_madrasah',
+            'email' => 'guru.madrasah@cakapku.test',
+            'password' => Hash::make('password123'),
+            'jabatan' => 'Guru Madya MAN 1',
+            'gol_ruang' => 'III/c',
+        ]);
+        $guruMadrasah->assignRole('USER');
+
+        // Staf TU Madrasah
+        $stafTuMadrasah = User::create([
+            'id_satker' => $madrasah->id,
+            'nama' => 'Dian Pratama, A.Md.Kom',
+            'nip' => '199509092020011006',
+            'username' => 'staf_tu_madrasah',
+            'email' => 'staf.tu.madrasah@cakapku.test',
+            'password' => Hash::make('password123'),
+            'jabatan' => 'Staf Administrasi TU MAN 1',
+            'gol_ruang' => 'II/c',
+        ]);
+        $stafTuMadrasah->assignRole('USER');
+
+
+        // ==========================================
+        // 5. KUA (KUA Kecamatan A)
+        // ==========================================
+
+        // Kepala KUA
+        $kepalaKua = User::create([
+            'id_satker' => $kua->id,
+            'nama' => 'H. Lukman Hakim, S.Th.I',
+            'nip' => '198204042008011003',
+            'username' => 'kakua',
+            'email' => 'kakua@cakapku.test',
+            'password' => Hash::make('password123'),
+            'jabatan' => 'Kepala KUA Kecamatan A',
+            'gol_ruang' => 'III/c',
+        ]);
+        $kepalaKua->assignRole('PIMPINAN');
+        $kua->update(['id_pimpinan' => $kepalaKua->id]);
+
+        // Staf KUA
+        $stafKua = User::create([
+            'id_satker' => $kua->id,
+            'nama' => 'Joko Susilo, S.H',
+            'nip' => '198807072012011005',
+            'username' => 'staf_kua',
+            'email' => 'staf.kua@cakapku.test',
+            'password' => Hash::make('password123'),
+            'jabatan' => 'Staf Pelaksana KUA',
+            'gol_ruang' => 'III/a',
+        ]);
+        $stafKua->assignRole('USER');
     }
 }

@@ -24,7 +24,7 @@ class SatkerController extends BaseController
     public function index()
     {
         try {
-            return response()->json(Satker::with('pimpinan')->get());
+            return response()->json(Satker::with(['pimpinan', 'parent'])->get());
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengambil data Satker.',
@@ -61,7 +61,19 @@ class SatkerController extends BaseController
             $data = $request->validate([
                 'nama_satker' => 'required|string|max:255',
                 'id_pimpinan' => 'nullable|integer|exists:users,id',
+                'parent_id' => 'nullable|integer|exists:satkers,id',
+                'level' => 'nullable|integer|min:0',
             ]);
+
+            // Automatically set level based on parent if level is not provided
+            if (!isset($data['level']) || $data['level'] === null) {
+                if (isset($data['parent_id']) && $data['parent_id']) {
+                    $parent = Satker::find($data['parent_id']);
+                    $data['level'] = $parent ? $parent->level + 1 : 0;
+                } else {
+                    $data['level'] = 0;
+                }
+            }
 
             $satker = Satker::create($data);
 
@@ -111,7 +123,21 @@ class SatkerController extends BaseController
                 return response()->json(['message' => 'Hanya Super Admin yang dapat mengubah Satker.'], 403);
             }
             $satker = Satker::findOrFail($id);
-            $satker->update($request->all());
+            
+            $data = $request->validate([
+                'nama_satker' => 'sometimes|required|string|max:255',
+                'id_pimpinan' => 'nullable|integer|exists:users,id',
+                'parent_id' => 'nullable|integer|exists:satkers,id',
+                'level' => 'nullable|integer|min:0',
+            ]);
+
+            // Automatically recalculate level if parent_id changed and level is not provided
+            if (isset($data['parent_id']) && (!isset($data['level']) || $data['level'] === null)) {
+                $parent = Satker::find($data['parent_id']);
+                $data['level'] = $parent ? $parent->level + 1 : 0;
+            }
+
+            $satker->update($data);
 
             return response()->json($satker);
 
