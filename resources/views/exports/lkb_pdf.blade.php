@@ -1,38 +1,48 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>LKB_{{ $monthName }}_{{ $year }}</title>
     <style>
         @page {
-            size: A4 {{ $orientation ?? 'landscape' }};
+            size: A4
+                {{ $orientation ?? 'landscape' }}
+            ;
             margin: 12mm 10mm;
         }
+
         body {
             font-family: Helvetica, Arial, sans-serif;
-            font-size: {{ ($fontSize ?? 'medium') == 'small' ? '8.5pt' : (($fontSize ?? 'medium') == 'medium' ? '10pt' : '11.5pt') }};
+            font-size:
+                {{ ($fontSize ?? 'medium') == 'small' ? '8.5pt' : (($fontSize ?? 'medium') == 'medium' ? '10pt' : '11.5pt') }}
+            ;
             color: #1e293b;
             line-height: 1.4;
             background: #ffffff;
             margin: 0;
             padding: 0;
         }
+
         .header-container {
             width: 100%;
             border-bottom: 2px solid #0f172a;
             padding-bottom: 12px;
             margin-bottom: 18px;
         }
+
         .header-logo {
             float: left;
             width: 54px;
             height: 54px;
             margin-right: 15px;
         }
+
         .header-text {
             float: left;
             margin-top: 5px;
         }
+
         .header-text h2 {
             margin: 0;
             font-size: 13pt;
@@ -40,6 +50,7 @@
             color: #0f172a;
             letter-spacing: -0.2px;
         }
+
         .header-text p {
             margin: 3px 0 0 0;
             font-size: 9.5pt;
@@ -47,9 +58,11 @@
             color: #475569;
             text-transform: uppercase;
         }
+
         .clear {
             clear: both;
         }
+
         .info-table {
             width: 100%;
             max-width: 550px;
@@ -58,58 +71,73 @@
             background-color: #f8fafc;
             border: 1px solid #e2e8f0;
         }
+
         .info-table td {
             padding: 6px 10px;
             font-size: 8.5pt;
             color: #334155;
             vertical-align: top;
         }
+
         .info-table td.label {
             width: 110px;
             color: #64748b;
             font-weight: 500;
         }
+
         .info-table td.colon {
             width: 8px;
             text-align: center;
         }
+
         .info-table td.value {
             font-weight: bold;
             color: #0f172a;
         }
+
         .main-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 25px;
         }
+
         .main-table th {
             background-color: #f1f5f9;
             color: #0f172a;
             font-weight: bold;
             text-transform: uppercase;
-            font-size: {{ ($fontSize ?? 'medium') == 'small' ? '7.5pt' : (($fontSize ?? 'medium') == 'medium' ? '8.5pt' : '9.5pt') }};
+            font-size:
+                {{ ($fontSize ?? 'medium') == 'small' ? '7.5pt' : (($fontSize ?? 'medium') == 'medium' ? '8.5pt' : '9.5pt') }}
+            ;
             padding: 8px 6px;
             border: 1px solid #cbd5e1;
             text-align: center;
         }
+
         .main-table td {
             padding: 8px 8px;
             border: 1px solid #cbd5e1;
-            font-size: {{ ($fontSize ?? 'medium') == 'small' ? '8pt' : (($fontSize ?? 'medium') == 'medium' ? '9pt' : '10pt') }};
+            font-size:
+                {{ ($fontSize ?? 'medium') == 'small' ? '8pt' : (($fontSize ?? 'medium') == 'medium' ? '9pt' : '10pt') }}
+            ;
             vertical-align: top;
             color: #334155;
         }
+
         .text-center {
             text-align: center !important;
         }
+
         .font-semibold {
             font-weight: 600;
         }
+
         .signature-section {
             width: 100%;
             margin-top: 30px;
             page-break-inside: avoid;
         }
+
         .signature-col {
             width: 50%;
             float: left;
@@ -118,21 +146,24 @@
             font-weight: bold;
             color: #1e293b;
         }
+
         .signature-space {
             height: 75px;
         }
+
         .signature-name {
             text-decoration: underline;
-            text-transform: uppercase;
             font-weight: bold;
             margin-bottom: 2px;
         }
+
         .signature-nip {
             font-weight: normal;
             color: #475569;
         }
     </style>
 </head>
+
 <body>
 
     <!-- Header Block -->
@@ -142,8 +173,10 @@
             <svg viewBox="0 0 100 100" width="54" height="54" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="50" cy="50" r="46" fill="#0b5e3a" stroke="#d4af37" stroke-width="2.5" />
                 <circle cx="50" cy="50" r="42" fill="none" stroke="#d4af37" stroke-width="1" stroke-dasharray="3,2" />
-                <path d="M 50 25 Q 68 28 65 52 Q 62 72 50 82 Q 38 72 35 52 Q 32 28 50 25 Z" fill="none" stroke="#d4af37" stroke-width="1.5" />
-                <polygon points="50,29 52.5,35.5 59.5,35.5 54,39.5 56.5,46 50,42 43.5,46 46,39.5 40.5,35.5 47.5,35.5" fill="#d4af37" />
+                <path d="M 50 25 Q 68 28 65 52 Q 62 72 50 82 Q 38 72 35 52 Q 32 28 50 25 Z" fill="none" stroke="#d4af37"
+                    stroke-width="1.5" />
+                <polygon points="50,29 52.5,35.5 59.5,35.5 54,39.5 56.5,46 50,42 43.5,46 46,39.5 40.5,35.5 47.5,35.5"
+                    fill="#d4af37" />
                 <line x1="33" y1="50" x2="67" y2="50" stroke="#d4af37" stroke-width="2" stroke-linecap="round" />
                 <line x1="50" y1="42" x2="50" y2="68" stroke="#d4af37" stroke-width="2" stroke-linecap="round" />
                 <path d="M 45 42 L 55 42" stroke="#d4af37" stroke-width="1.5" />
@@ -153,7 +186,8 @@
                 <line x1="67" y1="50" x2="61" y2="60" stroke="#d4af37" stroke-width="0.8" />
                 <line x1="67" y1="50" x2="73" y2="60" stroke="#d4af37" stroke-width="0.8" />
                 <path d="M 59 60 Q 67 66 75 60 Z" fill="#d4af37" />
-                <path d="M 38 70 Q 50 74 62 70 L 62 67 Q 50 71 38 67 Z" fill="#ffffff" stroke="#d4af37" stroke-width="1" />
+                <path d="M 38 70 Q 50 74 62 70 L 62 67 Q 50 71 38 67 Z" fill="#ffffff" stroke="#d4af37"
+                    stroke-width="1" />
                 <line x1="50" y1="67" x2="50" y2="72" stroke="#d4af37" stroke-width="1" />
             </svg>
         </div>
@@ -169,7 +203,7 @@
         <tr>
             <td class="label">Nama Pegawai</td>
             <td class="colon">:</td>
-            <td class="value" style="text-transform: uppercase;">{{ $pegawaiName ?: '-' }}</td>
+            <td class="value">{{ $pegawaiName ?: '-' }}</td>
         </tr>
         <tr>
             <td class="label">NIP</td>
@@ -261,7 +295,8 @@
             <p>Atasan Langsung</p>
             <div class="signature-space">
                 @if(isset($enableAnchorAtasan) && $enableAnchorAtasan)
-                    <div style="font-size: 8.5pt; color: #0f172a; font-weight: normal; padding-top: 35px; text-align: center; font-family: Courier, monospace;">
+                    <div
+                        style="font-size: 8.5pt; color: #0f172a; font-weight: normal; padding-top: 35px; text-align: center; font-family: Courier, monospace;">
                         {{ $anchorAtasanText }}
                     </div>
                 @endif
@@ -274,7 +309,8 @@
             <p>{{ $pegawaiJabatan ?: 'Pegawai Negeri Sipil' }},</p>
             <div class="signature-space">
                 @if(isset($enableAnchorPegawai) && $enableAnchorPegawai)
-                    <div style="font-size: 8.5pt; color: #0f172a; font-weight: normal; padding-top: 35px; text-align: center; font-family: Courier, monospace;">
+                    <div
+                        style="font-size: 8.5pt; color: #0f172a; font-weight: normal; padding-top: 35px; text-align: center; font-family: Courier, monospace;">
                         {{ $anchorPegawaiText }}
                     </div>
                 @endif
@@ -286,4 +322,5 @@
     </div>
 
 </body>
+
 </html>

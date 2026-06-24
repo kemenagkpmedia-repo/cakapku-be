@@ -15,19 +15,17 @@ class SasaranKegiatanController extends BaseController
             $query = SasaranKegiatan::with(['perkin', 'iksks']);
 
             // Filter Perkin yang aktif dan Periode yang aktif
-            $query->whereHas('perkin', function($q) {
+            $query->whereHas('perkin', function ($q) {
                 $q->where('status', true);
-                $q->whereHas('periode', function($sq) {
+                $q->whereHas('periode', function ($sq) {
                     $sq->where('status', true);
                 });
+
+            });
+            $query->whereHas('perkin.satkers', function ($q) use ($user) {
+                $q->where('satkers.id', $user->id_satker);
             });
 
-            // Filter Satker jika bukan admin / super admin
-            if (!$user->hasRole(['ADMIN', 'SUPER ADMIN'])) {
-                $query->whereHas('perkin.satkers', function ($q) use ($user) {
-                    $q->where('satkers.id', $user->id_satker);
-                });
-            }
 
             $idPerkin = $request->query('id_perkin') ?? $request->query('perkin_id');
             if ($idPerkin) {
