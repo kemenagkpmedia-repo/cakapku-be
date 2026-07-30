@@ -169,27 +169,8 @@
     <!-- Header Block -->
     <div class="header-container">
         <div class="header-logo">
-            <!-- 100% Vector Local Offline Kemenag Emblem -->
-            <svg viewBox="0 0 100 100" width="54" height="54" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="46" fill="#0b5e3a" stroke="#d4af37" stroke-width="2.5" />
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#d4af37" stroke-width="1" stroke-dasharray="3,2" />
-                <path d="M 50 25 Q 68 28 65 52 Q 62 72 50 82 Q 38 72 35 52 Q 32 28 50 25 Z" fill="none" stroke="#d4af37"
-                    stroke-width="1.5" />
-                <polygon points="50,29 52.5,35.5 59.5,35.5 54,39.5 56.5,46 50,42 43.5,46 46,39.5 40.5,35.5 47.5,35.5"
-                    fill="#d4af37" />
-                <line x1="33" y1="50" x2="67" y2="50" stroke="#d4af37" stroke-width="2" stroke-linecap="round" />
-                <line x1="50" y1="42" x2="50" y2="68" stroke="#d4af37" stroke-width="2" stroke-linecap="round" />
-                <path d="M 45 42 L 55 42" stroke="#d4af37" stroke-width="1.5" />
-                <line x1="33" y1="50" x2="27" y2="60" stroke="#d4af37" stroke-width="0.8" />
-                <line x1="33" y1="50" x2="39" y2="60" stroke="#d4af37" stroke-width="0.8" />
-                <path d="M 25 60 Q 33 66 41 60 Z" fill="#d4af37" />
-                <line x1="67" y1="50" x2="61" y2="60" stroke="#d4af37" stroke-width="0.8" />
-                <line x1="67" y1="50" x2="73" y2="60" stroke="#d4af37" stroke-width="0.8" />
-                <path d="M 59 60 Q 67 66 75 60 Z" fill="#d4af37" />
-                <path d="M 38 70 Q 50 74 62 70 L 62 67 Q 50 71 38 67 Z" fill="#ffffff" stroke="#d4af37"
-                    stroke-width="1" />
-                <line x1="50" y1="67" x2="50" y2="72" stroke="#d4af37" stroke-width="1" />
-            </svg>
+            <!-- Official Kemenag Logo from local public asset -->
+            <img src="{{ public_path('v2/logo-kemenag.png') }}" width="54" height="54" style="object-fit: contain;" />
         </div>
         <div class="header-text">
             <h2>LAPORAN KINERJA BULANAN (LKB) PEGAWAI</h2>

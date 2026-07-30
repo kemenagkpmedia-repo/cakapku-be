@@ -21,11 +21,13 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
+        'foto',
     ];
 
     protected $appends = [
         'sub_unit',
         'atasan_user',
+        'foto_url',
     ];
 
     protected $hidden = [
@@ -46,6 +48,14 @@ class User extends Authenticatable
     public function getSubUnitAttribute()
     {
         return $this->satker ? $this->satker->nama_satker : null;
+    }
+
+    public function getFotoUrlAttribute()
+    {
+        if ($this->foto) {
+            return url('storage/' . $this->foto);
+        }
+        return null;
     }
 
     public function getAtasanUserAttribute()

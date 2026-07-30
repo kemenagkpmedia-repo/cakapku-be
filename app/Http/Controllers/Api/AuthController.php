@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\QueryException;
 use Exception;
@@ -110,6 +111,59 @@ class AuthController extends BaseController
             'user'   => $user,
             'config' => $config,
         ]);
+    }
+
+    public function updateFoto(Request $request)
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['message' => 'Tidak terautentikasi.'], 401);
+            }
+
+            $request->validate([
+                'foto' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
+            if ($request->hasFile('foto')) {
+                // Hapus foto lama jika ada di storage
+                if ($user->foto && Storage::disk('public')->exists($user->foto)) {
+                    Storage::disk('public')->delete($user->foto);
+                }
+
+                // Simpan foto baru ke public/avatars
+                $file = $request->file('foto');
+                $filename = 'avatars/' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                Storage::disk('public')->put($filename, file_get_contents($file));
+
+                // Update kolom foto di DB
+                $user->update([
+                    'foto' => $filename
+                ]);
+
+                // Ambil data user segar dengan appends
+                $user->refresh();
+
+                return response()->json([
+                    'message' => 'Foto profil berhasil diperbarui.',
+                    'foto' => $user->foto,
+                    'foto_url' => $user->foto_url
+                ], 200);
+            }
+
+            return response()->json(['message' => 'File tidak ditemukan.'], 400);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'File tidak valid. Pastikan format gambar (jpg/png) dan ukuran maksimal 2MB.',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengunggah foto profil.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

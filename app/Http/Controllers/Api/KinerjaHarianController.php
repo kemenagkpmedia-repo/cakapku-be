@@ -34,7 +34,7 @@ class KinerjaHarianController extends BaseController
             $month = $request->query('month');
             $year = $request->query('year');
 
-            $query = KinerjaHarian::with('iksk.sasaran_kegiatan.perkin')->where('id_user', $user->id);
+            $query = KinerjaHarian::with('iksk.sasaran_kegiatan.perkin')->where('id_user', $user->id)->orderBy('tanggal', 'desc');
 
             if ($month) {
                 $query->whereMonth('tanggal', $month);
@@ -48,7 +48,7 @@ class KinerjaHarianController extends BaseController
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengambil data Kinerja Harian.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -84,8 +84,8 @@ class KinerjaHarianController extends BaseController
             }
 
             $data = $request->validate([
-                'tanggal'          => 'required|date',
-                'id_iksk'          => 'required|integer|exists:iksks,id',
+                'tanggal' => 'required|date',
+                'id_iksk' => 'required|integer|exists:iksks,id',
                 'uraian_pekerjaan' => 'required|string',
                 'status_kehadiran' => 'required|string',
             ]);
@@ -99,17 +99,17 @@ class KinerjaHarianController extends BaseController
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Data tidak valid.',
-                'errors'  => $e->errors(),
+                'errors' => $e->errors(),
             ], 422);
         } catch (QueryException $e) {
             return response()->json([
                 'message' => 'Gagal menyimpan Kinerja Harian. Terjadi kesalahan pada database.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -155,17 +155,17 @@ class KinerjaHarianController extends BaseController
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Data tidak valid.',
-                'errors'  => $e->errors(),
+                'errors' => $e->errors(),
             ], 422);
         } catch (QueryException $e) {
             return response()->json([
                 'message' => 'Gagal memperbarui Kinerja Harian.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -203,12 +203,12 @@ class KinerjaHarianController extends BaseController
         } catch (QueryException $e) {
             return response()->json([
                 'message' => 'Gagal menghapus Kinerja Harian.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -237,15 +237,17 @@ class KinerjaHarianController extends BaseController
             $year = $request->query('year');
 
             $query = User::where('id', '!=', $pimpinan->id)
-                ->with(['kinerja_harians' => function ($q) use ($month, $year) {
-                    if ($month) {
-                        $q->whereMonth('tanggal', $month);
+                ->with([
+                    'kinerja_harians' => function ($q) use ($month, $year) {
+                        if ($month) {
+                            $q->whereMonth('tanggal', $month);
+                        }
+                        if ($year) {
+                            $q->whereYear('tanggal', $year);
+                        }
+                        $q->with('iksk.sasaran_kegiatan.perkin');
                     }
-                    if ($year) {
-                        $q->whereYear('tanggal', $year);
-                    }
-                    $q->with('iksk.sasaran_kegiatan.perkin');
-                }])
+                ])
                 ->orderBy('nama', 'asc');
 
             if (!$pimpinan->isActiveRole('SUPER ADMIN', $request)) {
@@ -278,7 +280,7 @@ class KinerjaHarianController extends BaseController
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengambil data Kinerja Bawahan.',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -316,10 +318,10 @@ class KinerjaHarianController extends BaseController
             // 1. Resolve target user and verify authorization
             $targetUserId = $request->query('user_id');
             $targetUser = $user;
-            
-             if ($targetUserId && $targetUserId != $user->id) {
+
+            if ($targetUserId && $targetUserId != $user->id) {
                 $targetUser = \App\Models\User::findOrFail($targetUserId);
-                
+
                 $allowed = false;
                 if ($user->isActiveRole('SUPER ADMIN', $request)) {
                     $allowed = true;
@@ -341,7 +343,7 @@ class KinerjaHarianController extends BaseController
                         $allowed = in_array($targetUser->id_satker, $allowedSatkerIds);
                     }
                 }
-                
+
                 if (!$allowed) {
                     return response()->json([
                         'message' => 'Akses ditolak. Anda tidak memiliki wewenang mengekspor data pegawai ini.'
@@ -355,7 +357,7 @@ class KinerjaHarianController extends BaseController
             $pegawaiName = $request->query('pegawai_name', $targetUser->nama ?: $targetUser->name);
             $pegawaiNip = $request->query('pegawai_nip', $targetUser->nip);
             $pegawaiJabatan = $request->query('pegawai_jabatan', $targetUser->jabatan);
-            
+
             // Resolve dynamic atasan if not explicitly sent in the query parameters
             $dynamicAtasan = $targetUser->atasan_user;
             $atasanName = $request->query('atasan_name', $dynamicAtasan ? $dynamicAtasan->nama : '');
@@ -363,7 +365,7 @@ class KinerjaHarianController extends BaseController
             $signatureDate = $request->query('signature_date', '');
             $fontSize = $request->query('fontSize', 'medium');
             $orientation = $request->query('orientation', 'landscape');
-            
+
             // Decode toggled columns (passed as JSON string or arrays)
             $showColumnsJson = $request->query('columns', '{"status":true,"perkin":true,"iksk":true,"volume":true,"uraian":true}');
             $showColumns = json_decode($showColumnsJson, true) ?: [
@@ -393,10 +395,18 @@ class KinerjaHarianController extends BaseController
 
             // 4. Map month number to Indonesian name
             $monthsIndo = [
-                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
-                '04' => 'April', '05' => 'Mei', '06' => 'Juni',
-                '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
-                '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+                '01' => 'Januari',
+                '02' => 'Februari',
+                '03' => 'Maret',
+                '04' => 'April',
+                '05' => 'Mei',
+                '06' => 'Juni',
+                '07' => 'Juli',
+                '08' => 'Agustus',
+                '09' => 'September',
+                '10' => 'Oktober',
+                '11' => 'November',
+                '12' => 'Desember'
             ];
             $monthName = isset($monthsIndo[$month]) ? $monthsIndo[$month] : $month;
 
@@ -428,14 +438,14 @@ class KinerjaHarianController extends BaseController
             // Stream download as attachment with custom filename
             $cleanName = str_replace(' ', '_', $pegawaiName);
             $fileName = "LKB_{$monthName}_{$year}_{$cleanName}.pdf";
-            
+
             return $pdf->download($fileName);
 
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal menghasilkan Laporan Kinerja Bulanan.',
-                'error'   => $e->getMessage(),
-                'trace'   => $e->getTraceAsString()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }
@@ -464,7 +474,7 @@ class KinerjaHarianController extends BaseController
             $signatureDate = $request->input('signature_date', '');
             $fontSize = $request->input('fontSize', 'medium');
             $orientation = $request->input('orientation', 'landscape');
-            
+
             $showColumnsJson = $request->input('columns', '{"status":true,"perkin":true,"iksk":true,"volume":true,"uraian":true}');
             $showColumns = is_array($showColumnsJson) ? $showColumnsJson : (json_decode($showColumnsJson, true) ?: [
                 'status' => true,
@@ -481,16 +491,24 @@ class KinerjaHarianController extends BaseController
 
             // Map month number to Indonesian name
             $monthsIndo = [
-                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
-                '04' => 'April', '05' => 'Mei', '06' => 'Juni',
-                '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
-                '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+                '01' => 'Januari',
+                '02' => 'Februari',
+                '03' => 'Maret',
+                '04' => 'April',
+                '05' => 'Mei',
+                '06' => 'Juni',
+                '07' => 'Juli',
+                '08' => 'Agustus',
+                '09' => 'September',
+                '10' => 'Oktober',
+                '11' => 'November',
+                '12' => 'Desember'
             ];
             $monthName = isset($monthsIndo[$month]) ? $monthsIndo[$month] : $month;
 
             // Create temporary file path for ZIP inside system's tmp directory
             $tempZipFile = tempnam(sys_get_temp_dir(), 'lkb_zip_');
-            
+
             $zip = new \ZipArchive();
             if ($zip->open($tempZipFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
                 return response()->json(['message' => 'Gagal membuat file ZIP di server.'], 500);
@@ -499,7 +517,8 @@ class KinerjaHarianController extends BaseController
             // Loop and compile each user's PDF
             foreach ($userIds as $targetUserId) {
                 $targetUser = \App\Models\User::find($targetUserId);
-                if (!$targetUser) continue;
+                if (!$targetUser)
+                    continue;
 
                 // Authorization check
                 $allowed = false;
@@ -523,7 +542,8 @@ class KinerjaHarianController extends BaseController
                     }
                 }
 
-                if (!$allowed) continue;
+                if (!$allowed)
+                    continue;
 
                 $pegawaiName = $targetUser->nama ?: $targetUser->name;
                 $pegawaiNip = $targetUser->nip;
@@ -567,7 +587,7 @@ class KinerjaHarianController extends BaseController
                 // Render PDF
                 $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.lkb_pdf', $data);
                 $pdf->setPaper('a4', $orientation);
-                
+
                 // Add PDF binary content directly to the ZIP
                 $fileSafeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $pegawaiName);
                 $zip->addFromString("LKB_{$month}_{$year}_{$fileSafeName}.pdf", $pdf->output());
@@ -581,8 +601,8 @@ class KinerjaHarianController extends BaseController
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Terjadi kesalahan saat mengekspor ZIP.',
-                'error'   => $e->getMessage(),
-                'trace'   => $e->getTraceAsString()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }

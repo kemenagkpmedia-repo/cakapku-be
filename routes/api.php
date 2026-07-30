@@ -17,6 +17,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware(['auth:sanctum', 'role.active'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/me/foto', [AuthController::class, 'updateFoto']);
     Route::post('/switch-role', [AuthController::class, 'switchRole']);
     Route::get('/user', function (Request $request) {
         return $request->user();
