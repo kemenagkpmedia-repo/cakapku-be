@@ -148,7 +148,8 @@
         }
 
         .signature-space {
-            height: 75px;
+            height: 130px;
+            /* Ruang untuk barcode TTE (Tanda Tangan Elektronik) */
         }
 
         .signature-name {
