@@ -30,7 +30,13 @@ class DashboardController extends BaseController
                 return response()->json(['message' => 'Tidak terautentikasi.'], 401);
             }
 
-            $query = User::with(['kinerja_harians.iksk']);
+            $query = User::with(['kinerja_harians' => function ($q) {
+                        $q->with('iksk')
+                          ->orderBy('created_at', 'desc')
+                          ->limit(10);
+                    }])
+                    ->withCount('kinerja_harians as total_kinerja')
+                    ->orderBy('nama', 'asc');
 
             if (!$pimpinan->isActiveRole('SUPER ADMIN', $request)) {
                 // Pimpinan sees users in the satker they lead and all descendant satkers

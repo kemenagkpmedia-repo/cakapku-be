@@ -235,9 +235,25 @@ class KinerjaHarianController extends BaseController
 
             $month = $request->query('month');
             $year = $request->query('year');
+            $userId = $request->query('user_id');
 
-            $query = User::where('id', '!=', $pimpinan->id)
-                ->with([
+            $query = User::where('id', '!=', $pimpinan->id);
+
+            if ($userId) {
+                $query->where('id', $userId)
+                    ->with([
+                        'kinerja_harians' => function ($q) use ($month, $year) {
+                            if ($month) {
+                                $q->whereMonth('tanggal', $month);
+                            }
+                            if ($year) {
+                                $q->whereYear('tanggal', $year);
+                            }
+                            $q->with('iksk.sasaran_kegiatan.perkin');
+                        }
+                    ]);
+            } else {
+                $query->with([
                     'kinerja_harians' => function ($q) use ($month, $year) {
                         if ($month) {
                             $q->whereMonth('tanggal', $month);
@@ -245,10 +261,12 @@ class KinerjaHarianController extends BaseController
                         if ($year) {
                             $q->whereYear('tanggal', $year);
                         }
-                        $q->with('iksk.sasaran_kegiatan.perkin');
+                        $q->select('id', 'id_user', 'tanggal')
+                          ->orderBy('tanggal', 'desc');
                     }
                 ])
                 ->orderBy('nama', 'asc');
+            }
 
             if (!$pimpinan->isActiveRole('SUPER ADMIN', $request)) {
                 // Pimpinan sees users in the satker they lead and all descendant satkers
@@ -367,10 +385,10 @@ class KinerjaHarianController extends BaseController
             $orientation = $request->query('orientation', 'landscape');
 
             // Decode toggled columns (passed as JSON string or arrays)
-            $showColumnsJson = $request->query('columns', '{"status":true,"perkin":true,"iksk":true,"volume":true,"uraian":true}');
+            $showColumnsJson = $request->query('columns', '{"status":true,"perkin":false,"iksk":true,"volume":true,"uraian":true}');
             $showColumns = json_decode($showColumnsJson, true) ?: [
                 'status' => true,
-                'perkin' => true,
+                'perkin' => false,
                 'iksk' => true,
                 'volume' => true,
                 'uraian' => true
@@ -475,10 +493,10 @@ class KinerjaHarianController extends BaseController
             $fontSize = $request->input('fontSize', 'medium');
             $orientation = $request->input('orientation', 'landscape');
 
-            $showColumnsJson = $request->input('columns', '{"status":true,"perkin":true,"iksk":true,"volume":true,"uraian":true}');
+            $showColumnsJson = $request->input('columns', '{"status":true,"perkin":false,"iksk":true,"volume":true,"uraian":true}');
             $showColumns = is_array($showColumnsJson) ? $showColumnsJson : (json_decode($showColumnsJson, true) ?: [
                 'status' => true,
-                'perkin' => true,
+                'perkin' => false,
                 'iksk' => true,
                 'volume' => true,
                 'uraian' => true

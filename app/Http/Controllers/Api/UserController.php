@@ -41,8 +41,9 @@ class UserController extends BaseController
                 //     $q->whereIn('name', ['SUPER ADMIN', 'ADMIN']);
                 // });
 
-                if ($currentUser->id_satker) {
-                    $query->where('id_satker', $currentUser->id_satker);
+                if ($currentUser->id_satker && $currentUser->satker) {
+                    $allowedSatkerIds = $currentUser->satker->getDescendantIds();
+                    $query->whereIn('id_satker', $allowedSatkerIds);
                 } else {
                     // Jika Admin/Operator tidak punya Satker, dia tidak bisa melihat siapa-siapa
                     $query->whereRaw('1 = 0');
@@ -95,8 +96,9 @@ class UserController extends BaseController
 
             // Filter Satker jika ADMIN atau OPERATOR
             if ($currentUser->isActiveRole('ADMIN', $request) || $currentUser->isActiveRole('OPERATOR', $request)) {
-                if ($currentUser->id_satker) {
-                    $query->where('id_satker', $currentUser->id_satker);
+                if ($currentUser->id_satker && $currentUser->satker) {
+                    $allowedSatkerIds = $currentUser->satker->getDescendantIds();
+                    $query->whereIn('id_satker', $allowedSatkerIds);
                 } else {
                     $query->whereRaw('1 = 0');
                 }
@@ -226,11 +228,22 @@ class UserController extends BaseController
 
             // Hierarki & Pembatasan Edit Satker
             if (!$currentUser->isActiveRole('SUPER ADMIN', $request)) {
-                // Jika bukan Super Admin, dilarang merubah Satker
+                // Jika bukan Super Admin, dilarang merubah Satker kecuali berada dalam hierarki satker miliknya
                 if (isset($data['id_satker']) && $data['id_satker'] != $targetUser->id_satker) {
-                    return response()->json([
-                        'message' => 'Hanya Super Admin yang dapat merubah Satuan Kerja user.',
-                    ], 403);
+                    if ($currentUser->id_satker && $currentUser->satker) {
+                        $allowedSatkerIds = $currentUser->satker->getDescendantIds();
+                        
+                        // Pastikan Satker asal dan Satker tujuan berada dalam hierarki Admin
+                        if (!in_array($targetUser->id_satker, $allowedSatkerIds) || !in_array($data['id_satker'], $allowedSatkerIds)) {
+                            return response()->json([
+                                'message' => 'Anda hanya dapat memindahkan pegawai di dalam hierarki Satuan Kerja Anda.',
+                            ], 403);
+                        }
+                    } else {
+                        return response()->json([
+                            'message' => 'Anda tidak memiliki Satuan Kerja yang valid untuk melakukan operasi ini.',
+                        ], 403);
+                    }
                 }
 
                 // ADMIN tidak boleh merubah SUPER ADMIN atau ADMIN lain

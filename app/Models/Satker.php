@@ -40,4 +40,17 @@ class Satker extends Model
     {
         return $this->belongsToMany(Perkin::class, 'perkin_satker', 'id_satker', 'id_perkin');
     }
+
+    /**
+     * Mendapatkan semua ID satker bawahan secara rekursif termasuk satker itu sendiri.
+     */
+    public function getDescendantIds()
+    {
+        $ids = [$this->id];
+        foreach ($this->children as $child) {
+            $ids = array_merge($ids, $child->getDescendantIds());
+        }
+        return $ids;
+    }
 }
+
