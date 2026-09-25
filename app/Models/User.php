@@ -53,10 +53,7 @@ class User extends Authenticatable
     public function getFotoUrlAttribute()
     {
         if ($this->foto) {
-            if (str_starts_with($this->foto, 'http://') || str_starts_with($this->foto, 'https://')) {
-                return $this->foto;
-            }
-            return asset('storage/' . ltrim($this->foto, '/'));
+            return url('storage/' . $this->foto);
         }
         return null;
     }
